@@ -237,7 +237,6 @@ Modify `autoload_configs/callcenter.conf.xml`:
       <param name="tier-rule-wait-multiply-level" value="true"/>
       <param name="tier-rule-no-agent-no-wait" value="false"/>
       <param name="discard-abandoned-after" value="60"/>
-      <param name="abandon-resume-allowed" value="false"/>
     </queue>
   </queues>
 
