@@ -1,9 +1,9 @@
 <profile name="external">
   <!-- External SIP Profile for Trunks -->
-  
+
   <aliases>
   </aliases>
-  
+
   <gateways>
     <X-PRE-PROCESS cmd="include" data="external/*.xml"/>
   </gateways>
@@ -37,7 +37,16 @@
     <param name="ext-sip-ip" value="$${external_sip_ip}"/>
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
-    
+
+    <!-- STUN Server Configuration for NAT traversal -->
+    <param name="stun-server" value="stun:stun.l.google.com:19302"/>
+    <param name="stun-server-2" value="stun:stun1.l.google.com:19302"/>
+    <param name="stun-server-3" value="stun:stun2.l.google.com:19302"/>
+    <param name="apply-nat-acl" value="nat.auto"/>
+    <param name="aggressive-nat-detection" value="true"/>
+    <param name="rtp-nat-helper" value="true"/>
+    <param name="rtp-rewrite-timestamps" value="true"/>
+
     <!-- TLS settings -->
     <param name="tls" value="$${external_ssl_enable}"/>
     <param name="tls-only" value="false"/>
@@ -50,6 +59,6 @@
     <param name="tls-verify-in-subjects" value=""/>
     <param name="tls-version" value="$${sip_tls_version}"/>
     <param name="tls-ciphers" value="$${sip_tls_ciphers}"/>
-    
+
   </settings>
 </profile>
