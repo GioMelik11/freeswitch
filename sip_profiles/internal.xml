@@ -80,8 +80,8 @@
     <param name="disable-hold" value="false"/>
     <param name="rtp-autoflush" value="true"/>
     <param name="suppress-cng" value="true"/>
-    <param name="rtp-timeout-sec" value="300"/>
-    <param name="rtp-hold-timeout-sec" value="1800"/>
+    <param name="media_timeout" value="300"/>
+    <param name="media_hold_timeout" value="1800"/>
     <!-- RTP Debug Settings -->
     <param name="rtp-debug" value="true"/>
     <param name="rtp-debug-flags" value="all"/>
