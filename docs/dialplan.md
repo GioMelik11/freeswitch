@@ -56,7 +56,18 @@ The dialplan defines how calls are routed through the FreeSWITCH system, includi
     <action application="set" data="call_timeout=60"/>
     <action application="set" data="hangup_after_bridge=true"/>
     <action application="set" data="continue_on_fail=true"/>
-    <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
+    <action application="originate" data="sofia/gateway/sip_trunk_provider/$1 &transfer(outbound_answered XML default)"/>
+  </condition>
+</extension>
+
+<!-- Outbound Call Answered Handler -->
+<extension name="Outbound_Answered_Handler">
+  <condition field="destination_number" expression="^outbound_answered$">
+    <action application="answer"/>
+    <action application="sleep" data="1000"/>
+    <action application="playback" data="/usr/share/freeswitch/sounds/out/out.wav"/>
+    <action application="sleep" data="2000"/>
+    <action application="bridge" data="user/1001@${domain_name}"/>
   </condition>
 </extension>
 ```
