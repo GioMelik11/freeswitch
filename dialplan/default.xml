@@ -89,7 +89,7 @@
       </condition>
     </extension>
 
-    <!-- Outbound Calls (9 + number) - Simple bridge to SIP trunk -->
+    <!-- Outbound Calls (9 + number) - Enhanced for SIP trunk with IVR -->
     <extension name="Outbound_Calls">
       <condition field="destination_number" expression="^9(.*)$">
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
@@ -97,11 +97,11 @@
         <action application="set" data="call_timeout=60"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
-        <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
+        <action application="originate" data="sofia/gateway/sip_trunk_provider/$1 &transfer(outbound_answered XML default)"/>
       </condition>
     </extension>
 
-    <!-- Direct Outbound Calls (without 9 prefix) - Simple bridge to SIP trunk -->
+    <!-- Direct Outbound Calls (without 9 prefix) - Enhanced with IVR -->
     <extension name="Direct_Outbound_Calls">
       <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
@@ -109,7 +109,42 @@
         <action application="set" data="call_timeout=60"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
-        <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
+        <action application="originate" data="sofia/gateway/sip_trunk_provider/$1 &transfer(outbound_answered XML default)"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound Calls (9 + number) - Enhanced for SIP trunk with IVR -->
+    <extension name="Outbound_Calls">
+      <condition field="destination_number" expression="^9(.*)$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="originate" data="sofia/gateway/sip_trunk_provider/$1 &transfer(outbound_answered XML default)"/>
+      </condition>
+    </extension>
+
+    <!-- Direct Outbound Calls (without 9 prefix) - Enhanced with IVR -->
+    <extension name="Direct_Outbound_Calls">
+      <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="originate" data="sofia/gateway/sip_trunk_provider/$1 &transfer(outbound_answered XML default)"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound Call Answered Handler - Connect back to original caller -->
+    <extension name="Outbound_Answered_Handler">
+      <condition field="destination_number" expression="^outbound_answered$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="playback" data="/usr/share/freeswitch/sounds/out/out.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="bridge" data="user/${caller_id_number}@${domain_name}"/>
       </condition>
     </extension>
 
