@@ -113,29 +113,42 @@
       </condition>
     </extension>
 
-    <!-- IVR Access - DISABLED (module not available) -->
-    <!--
-    <extension name="IVR_Demo">
+    <!-- IVR Access -->
+    <extension name="IVR_Main">
       <condition field="destination_number" expression="^5000$">
         <action application="answer"/>
         <action application="sleep" data="1000"/>
         <action application="ivr" data="main_ivr"/>
       </condition>
     </extension>
-    -->
 
     <!-- Queue Access -->
-    <extension name="Queue_Support">
+    <extension name="Queue_1">
       <condition field="destination_number" expression="^2000$">
         <action application="answer"/>
-        <action application="callcenter" data="support@default"/>
+        <action application="callcenter" data="queue1@default"/>
       </condition>
     </extension>
 
-    <extension name="Queue_Sales">
+    <extension name="Queue_2">
       <condition field="destination_number" expression="^2001$">
         <action application="answer"/>
-        <action application="callcenter" data="sales@default"/>
+        <action application="callcenter" data="queue2@default"/>
+      </condition>
+    </extension>
+
+    <!-- Specific Queue Numbers -->
+    <extension name="Queue_251144">
+      <condition field="destination_number" expression="^251144$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue1@default"/>
+      </condition>
+    </extension>
+
+    <extension name="Queue_255431">
+      <condition field="destination_number" expression="^255431$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue2@default"/>
       </condition>
     </extension>
 
