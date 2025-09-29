@@ -5,14 +5,51 @@
 -->
 <include>
   <context name="public">
-    
-    <!-- Inbound DID routing -->
+
+    <!-- Inbound DID routing - Route to available extensions -->
     <extension name="Inbound_DID">
       <condition field="destination_number" expression="^(.*)$">
-        <!-- Route to operator by default (IVR disabled) -->
+        <!-- Route to extension 1000 by default (first available extension) -->
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="transfer" data="operator XML default"/>
+        <action application="transfer" data="1000 XML default"/>
+      </condition>
+    </extension>
+
+    <!-- Route specific DIDs to specific extensions -->
+    <extension name="Extension_1000">
+      <condition field="destination_number" expression="^2200405$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="1000 XML default"/>
+      </condition>
+    </extension>
+
+    <extension name="Extension_1001">
+      <condition field="destination_number" expression="^2200406$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="1001 XML default"/>
+      </condition>
+    </extension>
+
+    <extension name="Extension_1002">
+      <condition field="destination_number" expression="^2200407$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="1002 XML default"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound calls from external context -->
+    <extension name="External_Outbound_Calls">
+      <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
       </condition>
     </extension>
 
