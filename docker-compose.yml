@@ -1,0 +1,16 @@
+services:
+  freeswitch:
+    image: safarov/freeswitch
+    container_name: freeswitch_container
+    environment:
+      TZ: "Asia/Tbilisi"
+      SOUND_RATES: "8000:16000"
+      SOUND_TYPES: "music:en-us-callie"
+    network_mode: "host"
+    restart: always
+    volumes:
+      - ./freeswitch:/etc/freeswitch
+      - ./freeswitch-sounds:/usr/share/freeswitch/sounds
+    # working_dir: /nodejs_listener
+    # command: sh -c "npm install -y && node --max-old-space-size=4096 asteriskListener.js"
+    
