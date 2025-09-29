@@ -56,7 +56,6 @@ The dialplan defines how calls are routed through the FreeSWITCH system, includi
     <action application="set" data="call_timeout=60"/>
     <action application="set" data="hangup_after_bridge=true"/>
     <action application="set" data="continue_on_fail=true"/>
-    <action application="export" data="nolocal:execute_on_answer=playback /usr/share/freeswitch/sounds/out/out.wav"/>
     <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
   </condition>
 </extension>
