@@ -12,9 +12,9 @@
   </domains>
 
   <settings>
-    <param name="debug" value="1"/>
-    <param name="sip-trace" value="yes"/>
-    <param name="sip-capture" value="yes"/>
+    <param name="debug" value="0"/>
+    <param name="sip-trace" value="no"/>
+    <param name="sip-capture" value="no"/>
     <param name="context" value="default"/>
     <param name="rfc2833-pt" value="101"/>
     <param name="sip-port" value="$${internal_sip_port}"/>
@@ -82,6 +82,12 @@
     <param name="suppress-cng" value="true"/>
     <param name="rtp-timeout-sec" value="300"/>
     <param name="rtp-hold-timeout-sec" value="1800"/>
+    <!-- RTP Debug Settings -->
+    <param name="rtp-debug" value="true"/>
+    <param name="rtp-debug-flags" value="all"/>
+    <param name="media-debug" value="true"/>
+    <param name="media-debug-flags" value="all"/>
+    <param name="rtp-log-level" value="debug"/>
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="local-rtp-ip" value="$${local_ip_v4}"/>
     <param name="rtp-port-range" value="$${rtp_start_port}-$${rtp_end_port}"/>
