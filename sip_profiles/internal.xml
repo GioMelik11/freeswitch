@@ -32,7 +32,13 @@
     <param name="aggressive-nat-detection" value="true"/>
     <param name="inbound-proxy-media" value="false"/>
     <param name="outbound-proxy-media" value="false"/>
+    <param name="NDLB-received-in-nat-reg-contact" value="true"/>
+    <param name="NDLB-broken-auth-hash" value="true"/>
+    <param name="NDLB-force-rport" value="true"/>
     <param name="log-auth-failures" value="false"/>
+    <param name="session-timeout" value="1800"/>
+    <param name="session-refresh" value="120"/>
+    <param name="enable-100rel" value="true"/>
     <param name="forward-unsolicited-mwi-notify" value="false"/>
     <param name="inbound-codec-negotiation" value="generous"/>
     <param name="nonce-ttl" value="60"/>
@@ -54,6 +60,8 @@
     <param name="rtp-port-range" value="$${rtp_start_port}-$${rtp_end_port}"/>
     <param name="codec-negotiation" value="generous"/>
     <param name="disable-transcoding" value="false"/>
+    <param name="rtp-nat-helper" value="true"/>
+    <param name="rtp-rewrite-timestamps" value="true"/>
     <param name="local-network-acl" value="localnet.auto"/>
     <param name="record-path" value="$${recordings_dir}"/>
     <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
