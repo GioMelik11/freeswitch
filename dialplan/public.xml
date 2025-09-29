@@ -6,38 +6,30 @@
 <include>
   <context name="public">
 
-    <!-- Inbound DID routing - Route to available extensions -->
+    <!-- Inbound DID routing - Route to active extension 1001 -->
     <extension name="Inbound_DID">
       <condition field="destination_number" expression="^(.*)$">
-        <!-- Route to extension 1000 by default (first available extension) -->
-        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
-        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="transfer" data="1000 XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Route specific DIDs to specific extensions -->
-    <extension name="Extension_1000">
-      <condition field="destination_number" expression="^2200405$">
-        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
-        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="transfer" data="1000 XML default"/>
-      </condition>
-    </extension>
-
-    <extension name="Extension_1001">
-      <condition field="destination_number" expression="^2200406$">
+        <!-- Route to extension 1001 by default (active extension) -->
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
         <action application="transfer" data="1001 XML default"/>
       </condition>
     </extension>
 
-    <extension name="Extension_1002">
-      <condition field="destination_number" expression="^2200407$">
+    <!-- Route specific DIDs to specific extensions -->
+    <extension name="Extension_1001">
+      <condition field="destination_number" expression="^2200405$">
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="transfer" data="1002 XML default"/>
+        <action application="transfer" data="1001 XML default"/>
+      </condition>
+    </extension>
+
+    <extension name="Extension_1003">
+      <condition field="destination_number" expression="^2200406$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="1003 XML default"/>
       </condition>
     </extension>
 

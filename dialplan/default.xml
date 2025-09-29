@@ -49,9 +49,9 @@
       </condition>
     </extension>
 
-    <!-- Direct Extension Calls (1000-1005) - Fixed routing -->
-    <extension name="Direct_Extension_Calls">
-      <condition field="destination_number" expression="^(100[0-5])$">
+    <!-- Active Extensions (1001, 1003) - Direct user routing -->
+    <extension name="Active_Extensions">
+      <condition field="destination_number" expression="^(100[13])$">
         <action application="set" data="dialed_extension=$1"/>
         <action application="set" data="ringback=${us-ring}"/>
         <action application="set" data="call_timeout=30"/>
@@ -61,6 +61,18 @@
         <action application="answer"/>
         <action application="sleep" data="1000"/>
         <action application="hangup" data="NO_ANSWER"/>
+      </condition>
+    </extension>
+
+    <!-- Inactive Extensions (1000, 1002, 1004, 1005) - Loopback fallback -->
+    <extension name="Inactive_Extensions">
+      <condition field="destination_number" expression="^(100[0245])$">
+        <action application="set" data="dialed_extension=$1"/>
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="loopback/$1/default"/>
       </condition>
     </extension>
 
@@ -150,11 +162,16 @@
       </condition>
     </extension>
 
-    <!-- Emergency/Test Numbers -->
-    <extension name="Echo_Test">
-      <condition field="destination_number" expression="^9196$">
+    <!-- Loopback Extension Handler for Inactive Extensions -->
+    <extension name="Loopback_Extension_Handler">
+      <condition field="destination_number" expression="^(100[0245])$">
         <action application="answer"/>
-        <action application="echo"/>
+        <action application="sleep" data="1000"/>
+        <action application="playback" data="ivr/ivr-welcome_to_freeswitch.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="playback" data="ivr/ivr-you_are_now_connected.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="hangup" data="NORMAL_CLEARING"/>
       </condition>
     </extension>
 
