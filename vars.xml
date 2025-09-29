@@ -44,4 +44,8 @@
   <X-PRE-PROCESS cmd="set" data="rtp_video_max_bandwidth_in=1mb"/>
   <X-PRE-PROCESS cmd="set" data="rtp_video_max_bandwidth_out=1mb"/>
   
+  <!-- Sound files settings -->
+  <X-PRE-PROCESS cmd="set" data="SOUND_RATES=8000,16000,22050,32000,44100,48000"/>
+  <X-PRE-PROCESS cmd="set" data="SOUND_TYPES=wav,mp3"/>
+  
 </include>

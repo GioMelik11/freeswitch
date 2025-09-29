@@ -35,8 +35,8 @@
     <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="ext-rtp-ip" value="$${external_rtp_ip}"/>
     <param name="ext-sip-ip" value="$${external_sip_ip}"/>
-    <param name="rtp-timeout-sec" value="300"/>
-    <param name="rtp-hold-timeout-sec" value="1800"/>
+    <param name="media-timeout" value="300"/>
+    <param name="media-hold-timeout" value="1800"/>
     
     <!-- TLS settings -->
     <param name="tls" value="$${external_ssl_enable}"/>

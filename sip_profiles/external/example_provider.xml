@@ -1,7 +1,9 @@
 <include>
   <!-- Sample SIP Trunk Configuration -->
   <!-- Replace with your actual SIP provider details -->
-  
+  <!-- DISABLED - Configure with your actual provider details -->
+
+  <!--
   <gateway name="example_provider">
     <param name="username" value="your_username"/>
     <param name="realm" value="sip.example.com"/>
@@ -14,5 +16,6 @@
     <param name="caller-id-in-from" value="true"/>
     <param name="supress-cng" value="true"/>
   </gateway>
-  
+  -->
+
 </include>

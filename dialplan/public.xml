@@ -9,10 +9,10 @@
     <!-- Inbound DID routing -->
     <extension name="Inbound_DID">
       <condition field="destination_number" expression="^(.*)$">
-        <!-- Route to IVR by default -->
+        <!-- Route to operator by default (IVR disabled) -->
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="transfer" data="5000 XML default"/>
+        <action application="transfer" data="operator XML default"/>
       </condition>
     </extension>
 

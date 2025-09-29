@@ -37,8 +37,8 @@
     <param name="auth-all-packets" value="false"/>
     <param name="ext-rtp-ip" value="$${external_rtp_ip}"/>
     <param name="ext-sip-ip" value="$${external_sip_ip}"/>
-    <param name="rtp-timeout-sec" value="300"/>
-    <param name="rtp-hold-timeout-sec" value="1800"/>
+    <param name="media-timeout" value="300"/>
+    <param name="media-hold-timeout" value="1800"/>
     <param name="apply-inbound-acl" value="domains"/>
     <param name="local-network-acl" value="localnet.auto"/>
     <param name="record-path" value="$${recordings_dir}"/>

@@ -11,7 +11,7 @@
 -->
 <include>
   <context name="default">
-    
+
     <!-- Loop prevention -->
     <extension name="unloop">
       <condition field="${unroll_loops}" expression="^true$"/>
@@ -25,7 +25,7 @@
       <condition field="${call_debug}" expression="^true$" break="never">
         <action application="info"/>
       </condition>
-      
+
       <condition>
         <action application="hash" data="insert/${domain_name}-last_dial/${caller_id_number}/${destination_number}"/>
         <action application="export" data="RFC2822_DATE=${strftime(%a, %d %b %Y %T %z)}"/>
@@ -58,7 +58,8 @@
       </condition>
     </extension>
 
-    <!-- IVR Access -->
+    <!-- IVR Access - DISABLED (module not available) -->
+    <!--
     <extension name="IVR_Demo">
       <condition field="destination_number" expression="^5000$">
         <action application="answer"/>
@@ -66,6 +67,7 @@
         <action application="ivr" data="main_ivr"/>
       </condition>
     </extension>
+    -->
 
     <!-- Queue Access -->
     <extension name="Queue_Support">
