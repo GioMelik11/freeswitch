@@ -1,0 +1,43 @@
+<!--
+    Clean Directory Configuration
+    User management for extensions
+-->
+<include>
+  <domain name="$${domain}">
+    <params>
+      <param name="dial-string" value="{^^:sip_invite_domain=${dialed_domain}:presence_id=${dialed_user}@${dialed_domain}}${sofia_contact(*/${dialed_user}@${dialed_domain})}"/>
+    </params>
+
+    <variables>
+      <variable name="record_stereo" value="true"/>
+      <variable name="default_gateway" value="$${default_provider}"/>
+      <variable name="default_areacode" value="$${default_areacode}"/>
+      <variable name="transfer_fallback_extension" value="operator"/>
+    </variables>
+
+    <groups>
+      <group name="default">
+        <users>
+          <X-PRE-PROCESS cmd="include" data="default/*.xml"/>
+        </users>
+      </group>
+
+      <group name="support">
+        <users>
+          <user id="1000" type="pointer"/>
+          <user id="1001" type="pointer"/>
+          <user id="1002" type="pointer"/>
+        </users>
+      </group>
+
+      <group name="sales">
+        <users>
+          <user id="1003" type="pointer"/>
+          <user id="1004" type="pointer"/>
+          <user id="1005" type="pointer"/>
+        </users>
+      </group>
+    </groups>
+
+  </domain>
+</include>

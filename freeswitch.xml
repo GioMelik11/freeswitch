@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+    Clean FreeSWITCH Configuration
+    Minimal setup for:
+    - Extension registration
+    - SIP trunk configuration
+    - Outbound/inbound calls
+    - Local calls
+    - IVR configuration
+    - Queue configuration
+-->
+<document type="freeswitch/xml">
+  <!-- Include variables -->
+  <X-PRE-PROCESS cmd="include" data="vars.xml"/>
+
+  <!-- Configuration sections -->
+  <section name="configuration" description="Various Configuration">
+    <X-PRE-PROCESS cmd="include" data="autoload_configs/*.xml"/>
+  </section>
+
+  <!-- Dialplan -->
+  <section name="dialplan" description="Regex/XML Dialplan">
+    <X-PRE-PROCESS cmd="include" data="dialplan/*.xml"/>
+  </section>
+
+  <!-- Directory for user management -->
+  <section name="directory" description="User Directory">
+    <X-PRE-PROCESS cmd="include" data="directory/*.xml"/>
+  </section>
+
+  <!-- Languages -->
+  <section name="languages" description="Language Management">
+    <X-PRE-PROCESS cmd="include" data="lang/en/*.xml"/>
+  </section>
+</document>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Clean Dialplan Configuration
+    Supports:
+    - Local extensions (1000-1099)
+    - Outbound calls (9 + number)
+    - Inbound calls from trunks
+    - IVR access (5000)
+    - Queue access (2000-2009)
+    - Voicemail access (*98)
+-->
+<include>
+  <context name="default">
+    
+    <!-- Loop prevention -->
+    <extension name="unloop">
+      <condition field="${unroll_loops}" expression="^true$"/>
+      <condition field="${sip_looped_call}" expression="^true$">
+        <action application="deflect" data="${destination_number}"/>
+      </condition>
+    </extension>
+
+    <!-- Global settings -->
+    <extension name="global" continue="true">
+      <condition field="${call_debug}" expression="^true$" break="never">
+        <action application="info"/>
+      </condition>
+      
+      <condition>
+        <action application="hash" data="insert/${domain_name}-last_dial/${caller_id_number}/${destination_number}"/>
+        <action application="export" data="RFC2822_DATE=${strftime(%a, %d %b %Y %T %z)}"/>
+      </condition>
+    </extension>
+
+    <!-- Local Extensions (1000-1099) -->
+    <extension name="Local_Extension">
+      <condition field="destination_number" expression="^(10[0-9][0-9])$">
+        <action application="export" data="dialed_extension=$1"/>
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="hash" data="insert/${domain_name}-call_return/${dialed_extension}/${caller_id_number}"/>
+        <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="bridge" data="loopback/app=voicemail:default ${domain_name} ${dialed_extension}"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound Calls (9 + number) -->
+    <extension name="Outbound_Calls">
+      <condition field="destination_number" expression="^9(.*)$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="bridge" data="sofia/external/$1"/>
+      </condition>
+    </extension>
+
+    <!-- IVR Access -->
+    <extension name="IVR_Demo">
+      <condition field="destination_number" expression="^5000$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="ivr" data="main_ivr"/>
+      </condition>
+    </extension>
+
+    <!-- Queue Access -->
+    <extension name="Queue_Support">
+      <condition field="destination_number" expression="^2000$">
+        <action application="answer"/>
+        <action application="callcenter" data="support@default"/>
+      </condition>
+    </extension>
+
+    <extension name="Queue_Sales">
+      <condition field="destination_number" expression="^2001$">
+        <action application="answer"/>
+        <action application="callcenter" data="sales@default"/>
+      </condition>
+    </extension>
+
+    <!-- Voicemail Access -->
+    <extension name="Voicemail_Main">
+      <condition field="destination_number" expression="^\*98$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="voicemail" data="check default ${domain_name}"/>
+      </condition>
+    </extension>
+
+    <!-- Operator -->
+    <extension name="Operator">
+      <condition field="destination_number" expression="^(operator|0)$">
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="1000 XML features"/>
+      </condition>
+    </extension>
+
+    <!-- Conference Rooms (3000-3099) -->
+    <extension name="Conference_Rooms">
+      <condition field="destination_number" expression="^(30[0-9][0-9])$">
+        <action application="answer"/>
+        <action application="conference" data="$1-${domain_name}@default"/>
+      </condition>
+    </extension>
+
+    <!-- Emergency/Test Numbers -->
+    <extension name="Echo_Test">
+      <condition field="destination_number" expression="^9196$">
+        <action application="answer"/>
+        <action application="echo"/>
+      </condition>
+    </extension>
+
+    <extension name="Hold_Music">
+      <condition field="destination_number" expression="^9664$">
+        <action application="answer"/>
+        <action application="playback" data="$${hold_music}"/>
+      </condition>
+    </extension>
+
+  </context>
+</include>

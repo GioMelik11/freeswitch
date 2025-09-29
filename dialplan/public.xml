@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Public Context for Inbound Calls
+    Handles calls from external SIP trunks
+-->
+<include>
+  <context name="public">
+    
+    <!-- Inbound DID routing -->
+    <extension name="Inbound_DID">
+      <condition field="destination_number" expression="^(.*)$">
+        <!-- Route to IVR by default -->
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="5000 XML default"/>
+      </condition>
+    </extension>
+
+    <!-- Specific DID routing examples -->
+    <extension name="Support_DID">
+      <condition field="destination_number" expression="^\+1([0-9]{10})$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="2000 XML default"/>
+      </condition>
+    </extension>
+
+    <extension name="Sales_DID">
+      <condition field="destination_number" expression="^\+1([0-9]{10})$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="transfer" data="2001 XML default"/>
+      </condition>
+    </extension>
+
+  </context>
+</include>

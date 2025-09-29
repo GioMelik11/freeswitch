@@ -1,0 +1,69 @@
+<configuration name="callcenter.conf" description="CallCenter">
+  <settings>
+    <!-- Database settings -->
+    <param name="dbname" value="/dev/shm/callcenter.db"/>
+    <param name="cc-instance-id" value="single_box"/>
+  </settings>
+
+  <queues>
+    <!-- Support Queue -->
+    <queue name="support@default">
+      <param name="strategy" value="longest-idle-agent"/>
+      <param name="moh-sound" value="$${hold_music}"/>
+      <param name="time-base-score" value="system"/>
+      <param name="max-wait-time" value="0"/>
+      <param name="max-wait-time-with-no-agent" value="0"/>
+      <param name="max-wait-time-with-no-agent-time-reached" value="5"/>
+      <param name="tier-rules-apply" value="false"/>
+      <param name="tier-rule-wait-second" value="300"/>
+      <param name="tier-rule-wait-multiply-level" value="true"/>
+      <param name="tier-rule-no-agent-no-wait" value="false"/>
+      <param name="discard-abandoned-after" value="60"/>
+      <param name="abandoned-resume-allowed" value="false"/>
+    </queue>
+
+    <!-- Sales Queue -->
+    <queue name="sales@default">
+      <param name="strategy" value="longest-idle-agent"/>
+      <param name="moh-sound" value="$${hold_music}"/>
+      <param name="time-base-score" value="system"/>
+      <param name="max-wait-time" value="0"/>
+      <param name="max-wait-time-with-no-agent" value="0"/>
+      <param name="max-wait-time-with-no-agent-time-reached" value="5"/>
+      <param name="tier-rules-apply" value="false"/>
+      <param name="tier-rule-wait-second" value="300"/>
+      <param name="tier-rule-wait-multiply-level" value="true"/>
+      <param name="tier-rule-no-agent-no-wait" value="false"/>
+      <param name="discard-abandoned-after" value="60"/>
+      <param name="abandoned-resume-allowed" value="false"/>
+    </queue>
+
+  </queues>
+
+  <!-- Agents Configuration -->
+  <agents>
+    <!-- Support Agents -->
+    <agent name="1000@default" type="callback" contact="[leg_timeout=10]user/1000@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+    <agent name="1001@default" type="callback" contact="[leg_timeout=10]user/1001@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+    <agent name="1002@default" type="callback" contact="[leg_timeout=10]user/1002@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+    
+    <!-- Sales Agents -->
+    <agent name="1003@default" type="callback" contact="[leg_timeout=10]user/1003@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+    <agent name="1004@default" type="callback" contact="[leg_timeout=10]user/1004@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+    <agent name="1005@default" type="callback" contact="[leg_timeout=10]user/1005@default" status="Available" max-no-answer="3" wrap-up-time="10" reject-delay-time="10" busy-delay-time="60" />
+  </agents>
+  
+  <!-- Tier Configuration -->
+  <tiers>
+    <!-- Support Tier -->
+    <tier agent="1000@default" queue="support@default" level="1" position="1"/>
+    <tier agent="1001@default" queue="support@default" level="1" position="2"/>
+    <tier agent="1002@default" queue="support@default" level="1" position="3"/>
+    
+    <!-- Sales Tier -->
+    <tier agent="1003@default" queue="sales@default" level="1" position="1"/>
+    <tier agent="1004@default" queue="sales@default" level="1" position="2"/>
+    <tier agent="1005@default" queue="sales@default" level="1" position="3"/>
+  </tiers>
+
+</configuration>
