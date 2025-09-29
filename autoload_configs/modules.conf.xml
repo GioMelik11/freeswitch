@@ -20,7 +20,7 @@
     <load module="mod_conference"/>
     <!-- <load module="mod_voicemail"/> -->
     <load module="mod_fifo"/>
-    <!-- <load module="mod_ivr"/> -->
+    <load module="mod_ivr"/>
     <load module="mod_callcenter"/>
 
     <!-- Codecs -->

@@ -1,11 +1,6 @@
 <include>
-  <!-- 
-    IVR Menu Configuration
-    - Routes to different queues based on input
-    - Uses incoming.wav for all prompts
-  -->
   <menus>
-    <menu name="main_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/incoming.wav" greet-short="/usr/share/freeswitch/sounds/ivr/incoming.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/incoming.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/voicemail/incoming.wav" confirm-macro="" confirm-key="" tts-engine="flite" tts-voice="callie" confirm-attempts="3" timeout="15000" inter-digit-timeout="3000" max-failures="3" max-timeouts="3" digit-len="1">
+    <menu name="main_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/incoming.wav" greet-short="/usr/share/freeswitch/sounds/ivr/incoming.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/incoming.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/voicemail/incoming.wav" timeout="15000" inter-digit-timeout="3000" max-failures="3" max-timeouts="3" digit-len="1">
       <entry action="menu-exec-app" digits="1" param="transfer 251144 XML default"/>
       <entry action="menu-exec-app" digits="2" param="transfer 255431 XML default"/>
     </menu>
