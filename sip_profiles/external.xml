@@ -38,11 +38,11 @@
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
 
-    <!-- Asterisk-style NAT handling -->
+    <!-- Media handling for external trunk -->
     <param name="apply-nat-acl" value="nat.auto"/>
     <param name="aggressive-nat-detection" value="true"/>
-    <param name="inbound-proxy-media" value="true"/>
-    <param name="outbound-proxy-media" value="true"/>
+    <param name="inbound-proxy-media" value="false"/>
+    <param name="outbound-proxy-media" value="false"/>
     <param name="NDLB-received-in-nat-reg-contact" value="true"/>
     <param name="NDLB-broken-auth-hash" value="true"/>
     <param name="NDLB-force-rport" value="true"/>

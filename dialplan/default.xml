@@ -49,7 +49,7 @@
       </condition>
     </extension>
 
-    <!-- Active Extensions (1001, 1003) - Direct user routing with NAT fix -->
+    <!-- Active Extensions (1001, 1003) - Fixed media bridging -->
     <extension name="Active_Extensions">
       <condition field="destination_number" expression="^(100[13])$">
         <action application="set" data="dialed_extension=$1"/>
@@ -58,8 +58,9 @@
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
         <action application="set" data="bypass_media=false"/>
-        <action application="set" data="proxy_media=true"/>
-        <action application="set" data="media_mix_inbound_outbound_codecs=true"/>
+        <action application="set" data="proxy_media=false"/>
+        <action application="set" data="media_mix_inbound_outbound_codecs=false"/>
+        <action application="set" data="rtp_secure_media=false"/>
         <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
         <action application="answer"/>
         <action application="sleep" data="1000"/>

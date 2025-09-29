@@ -28,11 +28,11 @@
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="hold-music" value="$${hold_music}"/>
-    <!-- Media handling for incoming calls - Fixed for NAT -->
+    <!-- Media handling for incoming calls - Direct RTP flow -->
     <param name="apply-nat-acl" value="nat.auto"/>
     <param name="aggressive-nat-detection" value="true"/>
-    <param name="inbound-proxy-media" value="true"/>
-    <param name="outbound-proxy-media" value="true"/>
+    <param name="inbound-proxy-media" value="false"/>
+    <param name="outbound-proxy-media" value="false"/>
     <param name="NDLB-received-in-nat-reg-contact" value="true"/>
     <param name="NDLB-broken-auth-hash" value="true"/>
     <param name="NDLB-force-rport" value="true"/>
