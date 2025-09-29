@@ -18,16 +18,9 @@
   <X-PRE-PROCESS cmd="set" data="rtp_start_port=10000"/>
   <X-PRE-PROCESS cmd="set" data="rtp_end_port=20000"/>
 
-  <!-- RTP IP settings - Using reliable global STUN servers -->
-  <X-PRE-PROCESS cmd="stun-set" data="external_rtp_ip=stun:stun.l.google.com:19302"/>
-  <X-PRE-PROCESS cmd="stun-set" data="external_sip_ip=stun:stun.l.google.com:19302"/>
-
-  <!-- Alternative STUN servers for redundancy -->
-  <X-PRE-PROCESS cmd="set" data="stun_server_1=stun:stun.l.google.com:19302"/>
-  <X-PRE-PROCESS cmd="set" data="stun_server_2=stun:stun1.l.google.com:19302"/>
-  <X-PRE-PROCESS cmd="set" data="stun_server_3=stun:stun2.l.google.com:19302"/>
-  <X-PRE-PROCESS cmd="set" data="stun_server_4=stun:stun3.l.google.com:19302"/>
-  <X-PRE-PROCESS cmd="set" data="stun_server_5=stun:stun4.l.google.com:19302"/>
+  <!-- RTP IP settings - Asterisk-style NAT handling -->
+  <X-PRE-PROCESS cmd="set" data="external_rtp_ip=$${local_ip_v4}"/>
+  <X-PRE-PROCESS cmd="set" data="external_sip_ip=$${local_ip_v4}"/>
 
   <!-- Force local RTP for internal calls -->
   <X-PRE-PROCESS cmd="set" data="local_rtp_ip=$${local_ip_v4}"/>
@@ -42,13 +35,6 @@
   <X-PRE-PROCESS cmd="set" data="console_loglevel=debug"/>
   <X-PRE-PROCESS cmd="set" data="rtp_debug=true"/>
   <X-PRE-PROCESS cmd="set" data="media_debug=true"/>
-
-  <!-- TURN Server Configuration -->
-  <X-PRE-PROCESS cmd="set" data="turn_server_ip=YOUR_TURN_SERVER_IP"/>
-  <X-PRE-PROCESS cmd="set" data="turn_server_port=3478"/>
-  <X-PRE-PROCESS cmd="set" data="turn_username=YOUR_TURN_USERNAME"/>
-  <X-PRE-PROCESS cmd="set" data="turn_password=YOUR_TURN_PASSWORD"/>
-  <X-PRE-PROCESS cmd="set" data="turn_realm=YOUR_TURN_REALM"/>
 
   <!-- Ring tones -->
   <X-PRE-PROCESS cmd="set" data="us-ring=%(2000,4000,440,480)"/>

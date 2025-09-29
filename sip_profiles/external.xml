@@ -38,12 +38,27 @@
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
 
-    <!-- STUN Server Configuration for NAT traversal -->
-    <param name="stun-server" value="stun:stun.l.google.com:19302"/>
-    <param name="stun-server-2" value="stun:stun1.l.google.com:19302"/>
-    <param name="stun-server-3" value="stun:stun2.l.google.com:19302"/>
+    <!-- Asterisk-style NAT handling -->
     <param name="apply-nat-acl" value="nat.auto"/>
     <param name="aggressive-nat-detection" value="true"/>
+    <param name="inbound-proxy-media" value="true"/>
+    <param name="outbound-proxy-media" value="true"/>
+    <param name="NDLB-received-in-nat-reg-contact" value="true"/>
+    <param name="NDLB-broken-auth-hash" value="true"/>
+    <param name="NDLB-force-rport" value="true"/>
+    <param name="NDLB-force-rport-reg" value="true"/>
+    <param name="NDLB-force-rport-invite" value="true"/>
+    <param name="NDLB-force-rport-options" value="true"/>
+    <param name="NDLB-force-rport-subscribe" value="true"/>
+    <param name="NDLB-force-rport-notify" value="true"/>
+    <param name="NDLB-force-rport-message" value="true"/>
+    <param name="NDLB-force-rport-refer" value="true"/>
+    <param name="NDLB-force-rport-info" value="true"/>
+    <param name="NDLB-force-rport-update" value="true"/>
+    <param name="NDLB-force-rport-prack" value="true"/>
+    <param name="NDLB-force-rport-bye" value="true"/>
+    <param name="NDLB-force-rport-cancel" value="true"/>
+    <param name="NDLB-force-rport-ack" value="true"/>
     <param name="rtp-nat-helper" value="true"/>
     <param name="rtp-rewrite-timestamps" value="true"/>
 

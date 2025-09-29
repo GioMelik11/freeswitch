@@ -28,13 +28,27 @@
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="hold-music" value="$${hold_music}"/>
+    <!-- Asterisk-style NAT handling -->
     <param name="apply-nat-acl" value="nat.auto"/>
     <param name="aggressive-nat-detection" value="true"/>
-    <param name="inbound-proxy-media" value="false"/>
-    <param name="outbound-proxy-media" value="false"/>
+    <param name="inbound-proxy-media" value="true"/>
+    <param name="outbound-proxy-media" value="true"/>
     <param name="NDLB-received-in-nat-reg-contact" value="true"/>
     <param name="NDLB-broken-auth-hash" value="true"/>
     <param name="NDLB-force-rport" value="true"/>
+    <param name="NDLB-force-rport-reg" value="true"/>
+    <param name="NDLB-force-rport-invite" value="true"/>
+    <param name="NDLB-force-rport-options" value="true"/>
+    <param name="NDLB-force-rport-subscribe" value="true"/>
+    <param name="NDLB-force-rport-notify" value="true"/>
+    <param name="NDLB-force-rport-message" value="true"/>
+    <param name="NDLB-force-rport-refer" value="true"/>
+    <param name="NDLB-force-rport-info" value="true"/>
+    <param name="NDLB-force-rport-update" value="true"/>
+    <param name="NDLB-force-rport-prack" value="true"/>
+    <param name="NDLB-force-rport-bye" value="true"/>
+    <param name="NDLB-force-rport-cancel" value="true"/>
+    <param name="NDLB-force-rport-ack" value="true"/>
     <param name="log-auth-failures" value="false"/>
     <param name="session-timeout" value="1800"/>
     <param name="session-refresh" value="120"/>
@@ -63,16 +77,6 @@
     <param name="rtp-nat-helper" value="true"/>
     <param name="rtp-rewrite-timestamps" value="true"/>
     <param name="local-network-acl" value="localnet.auto"/>
-    <!-- TURN Server Configuration -->
-    <param name="turn-server" value="$${turn_server_ip}:$${turn_server_port}"/>
-    <param name="turn-username" value="$${turn_username}"/>
-    <param name="turn-password" value="$${turn_password}"/>
-    <param name="turn-protocol" value="udp"/>
-    <param name="turn-realm" value="$${turn_realm}"/>
-    <!-- ICE Configuration for NAT traversal -->
-    <param name="ice-aggressive-nomination" value="true"/>
-    <param name="ice-lite" value="true"/>
-    <param name="ice-trickle" value="true"/>
     <param name="record-path" value="$${recordings_dir}"/>
     <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
     <param name="manage-presence" value="true"/>
