@@ -72,10 +72,7 @@ freeswitch/
 1. **Extension** dials 9 + number
 2. **Default dialplan** matches pattern
 3. **Call routes** through `sip_trunk_provider`
-4. **External party answers** call
-5. **IVR message** plays (`/usr/share/freeswitch/sounds/out/out.wav`)
-6. **Call transfers** to operator (extension 1001)
-7. **Operator** handles the call
+4. **External call** established
 
 ### Internal Calls
 1. **Extension** dials another extension (1000-1099)

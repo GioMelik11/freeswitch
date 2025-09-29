@@ -192,15 +192,12 @@ fs_cli -x "originate loopback/255431 &echo"
 1. From extension 1001, dial 9 + external number
 2. Verify call routes through SIP trunk
 3. Check external phone rings
-4. Answer call and verify IVR message plays
-5. Verify call transfers to operator (1001)
-6. Test audio in both directions
+4. Answer call and verify audio
+5. Test both directions
 
 #### Expected Results
 - Call routes through trunk
 - External phone rings
-- IVR message plays when answered
-- Call transfers to operator
 - Audio works in both directions
 - Call completes successfully
 
