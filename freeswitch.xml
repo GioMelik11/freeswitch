@@ -27,9 +27,4 @@
   <section name="directory" description="User Directory">
     <X-PRE-PROCESS cmd="include" data="directory/*.xml"/>
   </section>
-
-  <!-- Call Center -->
-  <section name="callcenter" description="Call Center">
-    <X-PRE-PROCESS cmd="include" data="queues/*.xml"/>
-  </section>
 </document>
