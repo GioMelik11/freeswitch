@@ -30,6 +30,6 @@
 
   <!-- Call Center -->
   <section name="callcenter" description="Call Center">
-    <X-PRE-PROCESS cmd="include" data="queues/callcenter.conf.xml"/>
+    <X-PRE-PROCESS cmd="include" data="queues/*.xml"/>
   </section>
 </document>
