@@ -28,11 +28,11 @@
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="hold-music" value="$${hold_music}"/>
-    <!-- Media handling for incoming calls -->
+    <!-- Media handling for incoming calls - Fixed for NAT -->
     <param name="apply-nat-acl" value="nat.auto"/>
     <param name="aggressive-nat-detection" value="true"/>
-    <param name="inbound-proxy-media" value="false"/>
-    <param name="outbound-proxy-media" value="false"/>
+    <param name="inbound-proxy-media" value="true"/>
+    <param name="outbound-proxy-media" value="true"/>
     <param name="NDLB-received-in-nat-reg-contact" value="true"/>
     <param name="NDLB-broken-auth-hash" value="true"/>
     <param name="NDLB-force-rport" value="true"/>
@@ -82,6 +82,9 @@
     <param name="suppress-cng" value="true"/>
     <param name="rtp-timeout-sec" value="300"/>
     <param name="rtp-hold-timeout-sec" value="1800"/>
+    <param name="rtp-ip" value="$${local_ip_v4}"/>
+    <param name="local-rtp-ip" value="$${local_ip_v4}"/>
+    <param name="rtp-port-range" value="$${rtp_start_port}-$${rtp_end_port}"/>
     <param name="record-path" value="$${recordings_dir}"/>
     <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
     <param name="manage-presence" value="true"/>
