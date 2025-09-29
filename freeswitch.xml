@@ -28,8 +28,13 @@
     <X-PRE-PROCESS cmd="include" data="directory/*.xml"/>
   </section>
 
-  <!-- Languages -->
-  <section name="languages" description="Language Management">
-    <X-PRE-PROCESS cmd="include" data="lang/en/*.xml"/>
+  <!-- IVR Menus -->
+  <section name="ivr" description="IVR Menus">
+    <X-PRE-PROCESS cmd="include" data="ivr_menus/*.xml"/>
+  </section>
+
+  <!-- Call Center -->
+  <section name="callcenter" description="Call Center">
+    <X-PRE-PROCESS cmd="include" data="callcenter.conf.xml"/>
   </section>
 </document>
