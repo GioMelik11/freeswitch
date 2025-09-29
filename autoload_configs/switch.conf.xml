@@ -17,7 +17,11 @@
 
   <default-ptimes>
     <!-- Set this to override the 20ms assumption of various codecs in the sdp with no ptime defined -->
-    <!-- <codec name="G729" ptime="40"/> -->
+    <codec name="PCMU" ptime="20"/>
+    <codec name="PCMA" ptime="20"/>
+    <codec name="G722" ptime="20"/>
+    <codec name="OPUS" ptime="20"/>
+    <codec name="G729" ptime="20"/>
   </default-ptimes>
 
   <settings>

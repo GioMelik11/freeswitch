@@ -11,8 +11,8 @@
   <X-PRE-PROCESS cmd="set" data="hold_music=local_stream://moh"/>
 
   <!-- Codec preferences -->
-  <X-PRE-PROCESS cmd="set" data="global_codec_prefs=PCMU,PCMA,G722,OPUS"/>
-  <X-PRE-PROCESS cmd="set" data="outbound_codec_prefs=PCMU,PCMA,G722,OPUS"/>
+  <X-PRE-PROCESS cmd="set" data="global_codec_prefs=PCMU,PCMA,G722,OPUS,G729"/>
+  <X-PRE-PROCESS cmd="set" data="outbound_codec_prefs=PCMU,PCMA,G722,OPUS,G729"/>
 
   <!-- RTP Port Range -->
   <X-PRE-PROCESS cmd="set" data="rtp_start_port=10000"/>

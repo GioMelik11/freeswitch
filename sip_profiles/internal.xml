@@ -22,6 +22,8 @@
     <param name="dtmf-duration" value="2000"/>
     <param name="inbound-codec-prefs" value="$${global_codec_prefs}"/>
     <param name="outbound-codec-prefs" value="$${global_codec_prefs}"/>
+    <param name="inbound-codec-negotiation" value="generous"/>
+    <param name="outbound-codec-negotiation" value="generous"/>
     <param name="rtp-timer-name" value="soft"/>
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="sip-ip" value="$${local_ip_v4}"/>
@@ -50,6 +52,8 @@
     <param name="rtp-ip" value="$${local_ip_v4}"/>
     <param name="local-rtp-ip" value="$${local_ip_v4}"/>
     <param name="rtp-port-range" value="$${rtp_start_port}-$${rtp_end_port}"/>
+    <param name="codec-negotiation" value="generous"/>
+    <param name="disable-transcoding" value="false"/>
     <param name="local-network-acl" value="localnet.auto"/>
     <param name="record-path" value="$${recordings_dir}"/>
     <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
