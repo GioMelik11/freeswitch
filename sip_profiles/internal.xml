@@ -1,9 +1,9 @@
 <profile name="internal">
   <!-- Internal SIP Profile for Extensions -->
-  
+
   <aliases>
   </aliases>
-  
+
   <gateways>
   </gateways>
 
@@ -27,6 +27,9 @@
     <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="hold-music" value="$${hold_music}"/>
     <param name="apply-nat-acl" value="nat.auto"/>
+    <param name="aggressive-nat-detection" value="true"/>
+    <param name="inbound-proxy-media" value="false"/>
+    <param name="outbound-proxy-media" value="false"/>
     <param name="log-auth-failures" value="false"/>
     <param name="forward-unsolicited-mwi-notify" value="false"/>
     <param name="inbound-codec-negotiation" value="generous"/>
@@ -40,6 +43,9 @@
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
     <param name="apply-inbound-acl" value="domains"/>
+    <param name="rtp-rewrite-timestamps" value="true"/>
+    <param name="pass-rfc2833" value="true"/>
+    <param name="suppress-cng" value="true"/>
     <param name="local-network-acl" value="localnet.auto"/>
     <param name="record-path" value="$${recordings_dir}"/>
     <param name="record-template" value="${caller_id_number}.${target_domain}.${strftime(%Y-%m-%d-%H-%M-%S)}.wav"/>
@@ -51,7 +57,7 @@
     <param name="force-register-domain" value="$${domain}"/>
     <param name="force-subscription-domain" value="$${domain}"/>
     <param name="force-register-db-domain" value="$${domain}"/>
-    
+
     <!-- TLS settings -->
     <param name="tls" value="$${internal_ssl_enable}"/>
     <param name="tls-only" value="false"/>
@@ -64,10 +70,10 @@
     <param name="tls-verify-in-subjects" value=""/>
     <param name="tls-version" value="$${sip_tls_version}"/>
     <param name="tls-ciphers" value="$${sip_tls_ciphers}"/>
-    
+
     <!-- WebSocket support -->
     <param name="ws-binding" value=":5066"/>
     <param name="wss-binding" value=":7443"/>
-    
+
   </settings>
 </profile>
