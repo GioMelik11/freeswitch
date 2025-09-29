@@ -13,6 +13,16 @@
   <!-- Include variables -->
   <X-PRE-PROCESS cmd="include" data="vars.xml"/>
 
+  <!-- IVR Configuration -->
+  <section name="ivr" description="IVR Menus">
+    <X-PRE-PROCESS cmd="include" data="ivr_configs/*.xml"/>
+  </section>
+
+  <!-- Queue Configuration -->
+  <section name="callcenter" description="Call Center">
+    <X-PRE-PROCESS cmd="include" data="queue_configs/*.xml"/>
+  </section>
+
   <!-- Configuration sections -->
   <section name="configuration" description="Various Configuration">
     <X-PRE-PROCESS cmd="include" data="autoload_configs/*.xml"/>
