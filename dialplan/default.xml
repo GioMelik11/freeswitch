@@ -45,7 +45,7 @@
         <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
         <action application="answer"/>
         <action application="sleep" data="1000"/>
-        <action application="bridge" data="loopback/app=voicemail:default ${domain_name} ${dialed_extension}"/>
+        <action application="hangup" data="NO_ANSWER"/>
       </condition>
     </extension>
 
@@ -84,7 +84,8 @@
       </condition>
     </extension>
 
-    <!-- Voicemail Access -->
+    <!-- Voicemail Access - DISABLED -->
+    <!--
     <extension name="Voicemail_Main">
       <condition field="destination_number" expression="^\*98$">
         <action application="answer"/>
@@ -92,6 +93,7 @@
         <action application="voicemail" data="check default ${domain_name}"/>
       </condition>
     </extension>
+    -->
 
     <!-- Operator -->
     <extension name="Operator">
