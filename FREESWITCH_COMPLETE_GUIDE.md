@@ -36,18 +36,26 @@ freeswitch/
 │   └── sofia.conf.xml            # SIP profile settings
 ├── dialplan/                      # Call routing logic
 │   ├── default.xml               # Internal call routing
-│   └── public.xml                # Inbound call routing
+│   ├── public.xml                # Inbound call routing
+│   └── features.xml              # Feature codes
 ├── directory/                     # User/extension definitions
 │   └── default/                  # Default domain users
 │       ├── 1001.xml              # Extension 1001
 │       ├── 1003.xml              # Extension 1003
 │       └── default.xml           # Default user settings
-└── sip_profiles/                 # SIP profile configurations
-    ├── internal.xml              # Internal SIP profile
-    ├── external.xml              # External SIP profile
-    └── external/                 # SIP trunk gateways
-        └── sip_trunk_provider.xml # Provider gateway
+├── sip_profiles/                 # SIP profile configurations
+│   ├── internal.xml              # Internal SIP profile
+│   ├── external.xml              # External SIP profile
+│   └── external/                 # SIP trunk gateways
+│       └── sip_trunk_provider.xml # Provider gateway
+└── ivr_menus/                    # IVR menu definitions
+    └── main_ivr.xml              # Main IVR menu
 ```
+
+### Removed Components
+- **`skinny_profiles/`** - Cisco IP phone support (not needed for SIP)
+- **`dialplan/skinny-patterns/`** - Skinny dialplan patterns
+- **`lang/`** - Language files (using system defaults)
 
 ## Adding Extensions
 
