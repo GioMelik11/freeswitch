@@ -56,6 +56,14 @@ freeswitch/
 - **`skinny_profiles/`** - Cisco IP phone support (not needed for SIP)
 - **`dialplan/skinny-patterns/`** - Skinny dialplan patterns
 - **`lang/`** - Language files (using system defaults)
+- **`config.FS0`** - FAX modem configuration (not using fax)
+- **`extensions.conf`** - Asterisk dialplan format (using FreeSWITCH XML)
+- **`fur_elise.ttml`** - Beethoven music file (using system hold music)
+- **`tetris.ttml`** - Tetris music file (using system hold music)
+- **`notify-voicemail.tpl`** - Voicemail email template (voicemail disabled)
+- **`voicemail.tpl`** - Voicemail email template (voicemail disabled)
+- **`web-vm.tpl`** - Web voicemail template (voicemail disabled)
+- **`vars.xml.orig`** - Original variables backup (using custom vars.xml)
 
 ## Adding Extensions
 
