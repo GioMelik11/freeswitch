@@ -1,0 +1,58 @@
+<configuration name="call_recording.conf" description="Call Recording Configuration">
+    <settings>
+        <param name="recording-enabled" value="true"/>
+        <param name="recording-path" value="/usr/share/freeswitch/sounds/recordings"/>
+        <param name="recording-format" value="mp3"/>
+        <param name="recording-quality" value="high"/>
+        <param name="recording-channels" value="2"/>
+        <param name="recording-sample-rate" value="8000"/>
+        <param name="recording-bit-rate" value="128"/>
+        <param name="recording-compression" value="true"/>
+        <param name="recording-silence-threshold" value="200"/>
+        <param name="recording-silence-duration" value="3"/>
+    </settings>
+
+    <recording-rules>
+        <rule name="always_record_extensions">
+            <param name="enabled" value="true"/>
+            <param name="type" value="extension"/>
+            <param name="extensions" value="1001,1003"/>
+            <param name="recording-mode" value="always"/>
+        </rule>
+
+        <rule name="queue_recording">
+            <param name="enabled" value="true"/>
+            <param name="type" value="queue"/>
+            <param name="queues" value="queue1@default,queue2@default"/>
+            <param name="recording-mode" value="always"/>
+        </rule>
+
+        <rule name="manual_recording">
+            <param name="enabled" value="true"/>
+            <param name="type" value="manual"/>
+            <param name="recording-mode" value="on_demand"/>
+        </rule>
+
+        <rule name="conference_recording">
+            <param name="enabled" value="true"/>
+            <param name="type" value="conference"/>
+            <param name="recording-mode" value="always"/>
+        </rule>
+    </recording-rules>
+
+    <storage-layout>
+        <param name="base-path" value="/usr/share/freeswitch/sounds/recordings"/>
+        <param name="date-format" value="YYYY/MM/DD"/>
+        <param name="filename-format" value="${uniqueid}.mp3"/>
+        <param name="create-directories" value="true"/>
+        <param name="permissions" value="755"/>
+    </storage-layout>
+
+    <recording-controls>
+        <control name="start_recording" code="*1"/>
+        <control name="stop_recording" code="*2"/>
+        <control name="pause_recording" code="*3"/>
+        <control name="resume_recording" code="*4"/>
+        <control name="toggle_recording" code="*5"/>
+    </recording-controls>
+</configuration>

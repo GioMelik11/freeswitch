@@ -13,6 +13,10 @@
       <variable name="outbound_caller_id_name" value="$${outbound_caller_name}"/>
       <variable name="outbound_caller_id_number" value="$${outbound_caller_id}"/>
       <variable name="callgroup" value="support"/>
+      <variable name="default_trunk" value="sip_trunk_provider"/>
+      <variable name="backup_trunk" value="sip_trunk_provider"/>
+      <variable name="international_trunk" value="sip_trunk_provider"/>
+      <variable name="local_trunk" value="sip_trunk_provider"/>
     </variables>
   </user>
 </include>

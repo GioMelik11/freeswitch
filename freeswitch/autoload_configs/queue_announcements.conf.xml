@@ -1,0 +1,47 @@
+<configuration name="queue_announcements.conf" description="Queue Announcements">
+    <settings>
+        <param name="announce-sound-path" value="/usr/share/freeswitch/sounds/ivr/"/>
+        <param name="announce-language" value="en"/>
+        <param name="announce-voice" value="allison"/>
+    </settings>
+
+    <announcements>
+        <!-- Queue Position Announcements -->
+        <announcement name="position-1" sound="ivr/ivr-you_are_position_1.wav"/>
+        <announcement name="position-2" sound="ivr/ivr-you_are_position_2.wav"/>
+        <announcement name="position-3" sound="ivr/ivr-you_are_position_3.wav"/>
+        <announcement name="position-4" sound="ivr/ivr-you_are_position_4.wav"/>
+        <announcement name="position-5" sound="ivr/ivr-you_are_position_5.wav"/>
+        <announcement name="position-more" sound="ivr/ivr-you_are_position_more.wav"/>
+
+        <!-- Wait Time Announcements -->
+        <announcement name="wait-30" sound="ivr/ivr-estimated_wait_30_seconds.wav"/>
+        <announcement name="wait-60" sound="ivr/ivr-estimated_wait_1_minute.wav"/>
+        <announcement name="wait-120" sound="ivr/ivr-estimated_wait_2_minutes.wav"/>
+        <announcement name="wait-300" sound="ivr/ivr-estimated_wait_5_minutes.wav"/>
+        <announcement name="wait-more" sound="ivr/ivr-estimated_wait_more.wav"/>
+
+        <!-- General Queue Messages -->
+        <announcement name="queue-welcome" sound="ivr/ivr-welcome_to_queue.wav"/>
+        <announcement name="queue-hold" sound="ivr/ivr-please_hold.wav"/>
+        <announcement name="queue-agent-available" sound="ivr/ivr-agent_available.wav"/>
+    </announcements>
+
+    <queue-settings>
+        <queue name="queue1@default">
+            <param name="announce-frequency" value="30"/>
+            <param name="announce-position" value="true"/>
+            <param name="announce-holdtime" value="true"/>
+            <param name="announce-position-limit" value="5"/>
+            <param name="announce-holdtime-limit" value="300"/>
+        </queue>
+
+        <queue name="queue2@default">
+            <param name="announce-frequency" value="30"/>
+            <param name="announce-position" value="true"/>
+            <param name="announce-holdtime" value="true"/>
+            <param name="announce-position-limit" value="5"/>
+            <param name="announce-holdtime-limit" value="300"/>
+        </queue>
+    </queue-settings>
+</configuration>

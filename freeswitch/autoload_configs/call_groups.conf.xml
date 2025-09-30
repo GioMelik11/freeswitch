@@ -1,0 +1,70 @@
+<configuration name="call_groups.conf" description="Call Groups and Pickup Groups">
+    <settings>
+        <param name="pickup-enabled" value="true"/>
+        <param name="group-ring-enabled" value="true"/>
+        <param name="pickup-timeout" value="20"/>
+        <param name="group-ring-timeout" value="30"/>
+    </settings>
+
+    <pickup-groups>
+        <group name="support" id="1">
+            <param name="ring-timeout" value="20"/>
+            <param name="pickup-timeout" value="15"/>
+            <param name="pickup-code" value="*70"/>
+            <members>
+                <member id="1000"/>
+                <member id="1001"/>
+                <member id="1002"/>
+            </members>
+        </group>
+
+        <group name="sales" id="2">
+            <param name="ring-timeout" value="20"/>
+            <param name="pickup-timeout" value="15"/>
+            <param name="pickup-code" value="*71"/>
+            <members>
+                <member id="1003"/>
+                <member id="1004"/>
+                <member id="1005"/>
+            </members>
+        </group>
+
+        <group name="all" id="3">
+            <param name="ring-timeout" value="30"/>
+            <param name="pickup-timeout" value="20"/>
+            <param name="pickup-code" value="*72"/>
+            <members>
+                <member id="1000"/>
+                <member id="1001"/>
+                <member id="1002"/>
+                <member id="1003"/>
+                <member id="1004"/>
+                <member id="1005"/>
+            </members>
+        </group>
+    </pickup-groups>
+
+    <call-groups>
+        <group name="support" id="1">
+            <param name="ring-strategy" value="simultaneous"/>
+            <param name="ring-timeout" value="20"/>
+            <param name="fallback" value="voicemail"/>
+            <members>
+                <member id="1000"/>
+                <member id="1001"/>
+                <member id="1002"/>
+            </members>
+        </group>
+
+        <group name="sales" id="2">
+            <param name="ring-strategy" value="simultaneous"/>
+            <param name="ring-timeout" value="20"/>
+            <param name="fallback" value="voicemail"/>
+            <members>
+                <member id="1003"/>
+                <member id="1004"/>
+                <member id="1005"/>
+            </members>
+        </group>
+    </call-groups>
+</configuration>

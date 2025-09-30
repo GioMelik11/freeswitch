@@ -1,0 +1,88 @@
+<configuration name="time_conditions.conf" description="Time Conditions and Time Groups">
+    <settings>
+        <param name="timezone" value="America/New_York"/>
+        <param name="date-format" value="%Y-%m-%d"/>
+        <param name="time-format" value="%H:%M"/>
+    </settings>
+
+    <time-groups>
+        <group name="business_hours">
+            <param name="description" value="Business Hours: Mon-Fri 9AM-5PM"/>
+            <param name="timezone" value="America/New_York"/>
+            <schedule>
+                <day name="monday" start="09:00" end="17:00"/>
+                <day name="tuesday" start="09:00" end="17:00"/>
+                <day name="wednesday" start="09:00" end="17:00"/>
+                <day name="thursday" start="09:00" end="17:00"/>
+                <day name="friday" start="09:00" end="17:00"/>
+                <day name="saturday" start="closed"/>
+                <day name="sunday" start="closed"/>
+            </schedule>
+        </group>
+
+        <group name="extended_hours">
+            <param name="description" value="Extended Hours: Mon-Fri 8AM-8PM, Sat 9AM-5PM"/>
+            <param name="timezone" value="America/New_York"/>
+            <schedule>
+                <day name="monday" start="08:00" end="20:00"/>
+                <day name="tuesday" start="08:00" end="20:00"/>
+                <day name="wednesday" start="08:00" end="20:00"/>
+                <day name="thursday" start="08:00" end="20:00"/>
+                <day name="friday" start="08:00" end="20:00"/>
+                <day name="saturday" start="09:00" end="17:00"/>
+                <day name="sunday" start="closed"/>
+            </schedule>
+        </group>
+
+        <group name="24x7">
+            <param name="description" value="24x7 Operations"/>
+            <param name="timezone" value="America/New_York"/>
+            <schedule>
+                <day name="monday" start="00:00" end="23:59"/>
+                <day name="tuesday" start="00:00" end="23:59"/>
+                <day name="wednesday" start="00:00" end="23:59"/>
+                <day name="thursday" start="00:00" end="23:59"/>
+                <day name="friday" start="00:00" end="23:59"/>
+                <day name="saturday" start="00:00" end="23:59"/>
+                <day name="sunday" start="00:00" end="23:59"/>
+            </schedule>
+        </group>
+
+        <group name="holidays">
+            <param name="description" value="Holiday Schedule"/>
+            <param name="timezone" value="America/New_York"/>
+            <holidays>
+                <holiday name="new_years" date="01-01" start="closed" end="closed"/>
+                <holiday name="independence_day" date="07-04" start="closed" end="closed"/>
+                <holiday name="thanksgiving" date="11-24" start="closed" end="closed"/>
+                <holiday name="christmas" date="12-25" start="closed" end="closed"/>
+            </holidays>
+        </group>
+    </time-groups>
+
+    <time-conditions>
+        <condition name="business_hours_condition">
+            <param name="time-group" value="business_hours"/>
+            <param name="action" value="route_to_agents"/>
+            <param name="fallback" value="after_hours_message"/>
+        </condition>
+
+        <condition name="extended_hours_condition">
+            <param name="time-group" value="extended_hours"/>
+            <param name="action" value="route_to_limited_agents"/>
+            <param name="fallback" value="after_hours_message"/>
+        </condition>
+
+        <condition name="24x7_condition">
+            <param name="time-group" value="24x7"/>
+            <param name="action" value="route_to_agents"/>
+            <param name="fallback" value="emergency_message"/>
+        </condition>
+
+        <condition name="holiday_condition">
+            <param name="time-group" value="holidays"/>
+            <param name="action" value="holiday_message"/>
+            <param name="fallback" value="emergency_message"/>
+        </condition>
+    </time-conditions>
+</configuration>

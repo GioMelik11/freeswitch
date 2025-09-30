@@ -4,5 +4,18 @@
       <entry action="menu-exec-app" digits="1" param="transfer 251144 XML default"/>
       <entry action="menu-exec-app" digits="2" param="transfer 255431 XML default"/>
     </menu>
+
+    <!-- Outbound Call IVR for callee -->
+    <menu name="outbound_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/outbound_call.wav" greet-short="/usr/share/freeswitch/sounds/ivr/outbound_call.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/invalid_entry.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/call_ended.wav" timeout="10000" inter-digit-timeout="3000" max-failures="2" max-timeouts="2" digit-len="1">
+      <entry action="menu-exec-app" digits="1" param="transfer operator XML default"/>
+      <entry action="menu-exec-app" digits="2" param="hangup NORMAL_CLEARING"/>
+      <entry action="menu-exec-app" digits="0" param="transfer operator XML default"/>
+    </menu>
+
+    <!-- Outbound Call with Confirmation -->
+    <menu name="outbound_confirm_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/outbound_confirm.wav" greet-short="/usr/share/freeswitch/sounds/ivr/outbound_confirm.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/invalid_entry.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/call_ended.wav" timeout="8000" inter-digit-timeout="2000" max-failures="2" max-timeouts="2" digit-len="1">
+      <entry action="menu-exec-app" digits="1" param="transfer operator XML default"/>
+      <entry action="menu-exec-app" digits="2" param="hangup NORMAL_CLEARING"/>
+    </menu>
   </menus>
 </configuration>
