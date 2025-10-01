@@ -19,11 +19,6 @@
       <param name="tier-rule-wait-multiply-level" value="true"/>
       <param name="tier-rule-no-agent-no-wait" value="false"/>
       <param name="discard-abandoned-after" value="60"/>
-      <param name="announce-frequency" value="30"/>
-      <param name="announce-position" value="true"/>
-      <param name="announce-holdtime" value="true"/>
-      <param name="announce-position-limit" value="5"/>
-      <param name="announce-holdtime-limit" value="300"/>
     </queue>
 
     <!-- Queue 2 -->
@@ -39,11 +34,6 @@
       <param name="tier-rule-wait-multiply-level" value="true"/>
       <param name="tier-rule-no-agent-no-wait" value="false"/>
       <param name="discard-abandoned-after" value="60"/>
-      <param name="announce-frequency" value="30"/>
-      <param name="announce-position" value="true"/>
-      <param name="announce-holdtime" value="true"/>
-      <param name="announce-position-limit" value="5"/>
-      <param name="announce-holdtime-limit" value="300"/>
     </queue>
   </queues>
 

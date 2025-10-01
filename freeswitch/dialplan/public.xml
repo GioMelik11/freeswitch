@@ -6,23 +6,12 @@
 <include>
   <context name="public">
 
-    <!-- Inbound DID routing - Route to IVR with Time Conditions -->
+    <!-- Inbound DID routing - Route to IVR -->
     <extension name="Inbound_DID">
       <condition field="destination_number" expression="^(.*)$">
         <!-- Route to IVR for 2-digit selection -->
         <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
         <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="set" data="current_time=${strftime(%H:%M)}"/>
-        <action application="set" data="current_day=${strftime(%A)}"/>
-        <action application="set" data="current_date=${strftime(%m-%d)}"/>
-
-        <!-- Check if holiday -->
-        <action application="set" data="is_holiday=${holiday_check(${current_date})}"/>
-
-        <!-- Check if business hours -->
-        <action application="set" data="is_business_hours=${time_check(business_hours)}"/>
-
-        <!-- Route based on time conditions -->
         <action application="transfer" data="5000 XML default"/>
       </condition>
     </extension>
