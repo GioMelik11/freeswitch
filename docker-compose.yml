@@ -1,7 +1,7 @@
 services:
   freeswitch:
     image: safarov/freeswitch
-    container_name: freeswitch_container
+    container_name: freeswitch_cont
     environment:
       TZ: "Asia/Tbilisi"
       SOUND_RATES: "8000:16000"
