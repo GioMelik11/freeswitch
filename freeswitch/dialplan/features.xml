@@ -2,7 +2,128 @@
 <include>
   <context name="features">
 
-    <!-- Blind Transfer - Transfer to extension without consultation -->
+    <!-- Softphone-style DTMF Transfer Sequences -->
+
+    <!-- Enable DTMF Transfer Actions for Active Calls -->
+    <extension name="enable_transfer_dtmf">
+      <condition field="destination_number" expression="^.*$">
+        <!-- Blind Transfer - *1 -->
+        <action application="bind_digit_action" data="*1,execute_extension::blind_transfer_dtmf XML features"/>
+        <!-- Attended Transfer - *2 -->
+        <action application="bind_digit_action" data="*2,execute_extension::attended_transfer_dtmf XML features"/>
+        <!-- Complete Attended Transfer - ## -->
+        <action application="bind_digit_action" data="##,execute_extension::complete_attended_transfer XML features"/>
+        <!-- Cancel Transfer - #* -->
+        <action application="bind_digit_action" data="#*,execute_extension::cancel_transfer XML features"/>
+        <!-- Transfer Help - ** -->
+        <action application="bind_digit_action" data="**,execute_extension::transfer_help_dtmf XML features"/>
+      </condition>
+    </extension>
+
+    <!-- DTMF Blind Transfer Handler -->
+    <extension name="blind_transfer_dtmf">
+      <condition field="destination_number" expression="^blind_transfer_dtmf$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-please_enter_destination_number.wav"/>
+        <action application="read" data="1 1 3 10000 # ivr/ivr-please_enter_destination_number.wav ivr/ivr-that_was_an_invalid_entry.wav transfer_dest ^(\d+)$"/>
+        <action application="execute_extension" data="blind_transfer_handler_dtmf XML features"/>
+      </condition>
+    </extension>
+
+    <!-- DTMF Attended Transfer Handler -->
+    <extension name="attended_transfer_dtmf">
+      <condition field="destination_number" expression="^attended_transfer_dtmf$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-please_enter_destination_number.wav"/>
+        <action application="read" data="1 1 3 10000 # ivr/ivr-please_enter_destination_number.wav ivr/ivr-that_was_an_invalid_entry.wav transfer_dest ^(\d+)$"/>
+        <action application="execute_extension" data="attended_transfer_handler_dtmf XML features"/>
+      </condition>
+    </extension>
+
+    <!-- DTMF Blind Transfer Handler with Number -->
+    <extension name="blind_transfer_handler_dtmf">
+      <condition field="destination_number" expression="^blind_transfer_handler_dtmf$"/>
+      <condition field="${transfer_dest}" expression="^(10[0-9][0-9])$">
+        <!-- Internal extension transfer -->
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="-bleg $1 XML default"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^9(\+?[1-9][0-9]{7,14})$">
+        <!-- External number transfer (with 9 prefix) -->
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="-bleg sofia/gateway/sip_trunk_provider/$1 XML default"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^(\+?[1-9][0-9]{7,14})$">
+        <!-- Direct external number transfer -->
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="-bleg sofia/gateway/sip_trunk_provider/$1 XML default"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^(.*)$">
+        <!-- Default - try as internal extension -->
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="-bleg ${transfer_dest} XML default"/>
+      </condition>
+      <anti-action application="playback" data="ivr/ivr-invalid_entry.wav"/>
+    </extension>
+
+    <!-- DTMF Attended Transfer Handler with Number -->
+    <extension name="attended_transfer_handler_dtmf">
+      <condition field="destination_number" expression="^attended_transfer_handler_dtmf$"/>
+      <condition field="${transfer_dest}" expression="^(10[0-9][0-9])$">
+        <!-- Internal extension attended transfer -->
+        <action application="playback" data="ivr/ivr-consulting_destination.wav"/>
+        <action application="set" data="origination_cancel_key=#*"/>
+        <action application="att_xfer" data="user/${transfer_dest}@$${domain}"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^9(\+?[1-9][0-9]{7,14})$">
+        <!-- External number attended transfer (with 9 prefix) -->
+        <action application="playback" data="ivr/ivr-consulting_destination.wav"/>
+        <action application="set" data="origination_cancel_key=#*"/>
+        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/$1"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^(\+?[1-9][0-9]{7,14})$">
+        <!-- Direct external number attended transfer -->
+        <action application="playback" data="ivr/ivr-consulting_destination.wav"/>
+        <action application="set" data="origination_cancel_key=#*"/>
+        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/${transfer_dest}"/>
+      </condition>
+      <condition field="${transfer_dest}" expression="^(.*)$">
+        <!-- Default - try as internal extension -->
+        <action application="playback" data="ivr/ivr-consulting_destination.wav"/>
+        <action application="set" data="origination_cancel_key=#*"/>
+        <action application="att_xfer" data="user/${transfer_dest}@$${domain}"/>
+      </condition>
+      <anti-action application="playback" data="ivr/ivr-invalid_entry.wav"/>
+    </extension>
+
+    <!-- Complete Attended Transfer -->
+    <extension name="complete_attended_transfer">
+      <condition field="destination_number" expression="^complete_attended_transfer$">
+        <action application="playback" data="ivr/ivr-completing_transfer.wav"/>
+        <action application="att_xfer" data="complete"/>
+      </condition>
+    </extension>
+
+    <!-- Cancel Transfer -->
+    <extension name="cancel_transfer">
+      <condition field="destination_number" expression="^cancel_transfer$">
+        <action application="playback" data="ivr/ivr-transfer_cancelled.wav"/>
+        <action application="att_xfer" data="cancel"/>
+      </condition>
+    </extension>
+
+    <!-- Transfer Help DTMF -->
+    <extension name="transfer_help_dtmf">
+      <condition field="destination_number" expression="^transfer_help_dtmf$">
+        <action application="playback" data="ivr/ivr-transfer_help.wav"/>
+      </condition>
+    </extension>
+
+    <!-- Legacy Blind Transfer - Transfer to extension without consultation -->
     <extension name="blind_transfer">
       <condition field="destination_number" expression="^blind_transfer$">
         <action application="answer"/>

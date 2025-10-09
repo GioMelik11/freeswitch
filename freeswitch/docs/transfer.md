@@ -15,9 +15,28 @@ The FreeSWITCH transfer system provides comprehensive blind and attended transfe
 - **Use Case**: Verify availability before transferring
 - **Behavior**: Agent consults with destination, then completes transfer
 
-## Feature Codes
+## Transfer Methods
 
-### Basic Transfer Codes
+### Softphone-Style DTMF Transfers (Recommended)
+These work during active calls, just like modern softphones:
+
+#### DTMF Sequences (During Active Call)
+- **`*1`** - Blind transfer (prompts for destination)
+- **`*2`** - Attended transfer (prompts for destination)
+- **`##`** - Complete attended transfer
+- **`#*`** - Cancel transfer
+- **`**`** - Transfer help/information
+
+#### Usage Flow
+1. **During active call**, press `*1` or `*2`
+2. **Enter destination** when prompted
+3. **For attended transfer**: Consult with destination, then press `##` to complete
+4. **For cancellation**: Press `#*` anytime during transfer process
+
+### Legacy Feature Codes (Still Supported)
+These work by dialing the code directly:
+
+#### Basic Transfer Codes
 - **`*1`** - Blind transfer (prompts for destination)
 - **`*2`** - Legacy blind transfer (dx)
 - **`*3`** - Attended transfer (prompts for destination)
@@ -36,56 +55,69 @@ The FreeSWITCH transfer system provides comprehensive blind and attended transfe
 
 ## Usage Examples
 
-### Blind Transfer Examples
+### Softphone-Style DTMF Transfers (Recommended)
 
-#### 1. Transfer to Internal Extension
+#### Blind Transfer Examples
+1. **During active call**, press `*1`
+2. **System prompts**: "Please enter destination number"
+3. **Enter destination**: `1003` (internal) or `91234567890` (external)
+4. **Transfer completes** immediately
+
+#### Attended Transfer Examples
+1. **During active call**, press `*2`
+2. **System prompts**: "Please enter destination number"
+3. **Enter destination**: `1003` (internal) or `91234567890` (external)
+4. **System calls destination** and connects you for consultation
+5. **Press `##`** to complete transfer, or `#*` to cancel
+
+### Legacy Feature Code Examples
+
+#### Blind Transfer Examples
 ```
 *1 → Enter extension number (e.g., 1003) → Transfer completed
-```
-
-#### 2. Direct Blind Transfer
-```
 *11003 → Immediately transfers to extension 1003
-```
-
-#### 3. Transfer to External Number
-```
 *1 → Enter 9+number (e.g., 91234567890) → Transfer to external number
-```
-
-#### 4. Direct External Transfer
-```
 *191234567890 → Immediately transfers to external number
 ```
 
-### Attended Transfer Examples
-
-#### 1. Attended Transfer to Extension
+#### Attended Transfer Examples
 ```
 *3 → Enter extension number (e.g., 1003) → Consult with 1003 → Complete transfer
-```
-
-#### 2. Direct Attended Transfer
-```
 *31003 → Immediately starts attended transfer to extension 1003
-```
-
-#### 3. Attended Transfer to External
-```
 *4 → Enter 9+number → Consult with external number → Complete transfer
 ```
 
 ## Transfer Flow
 
-### Blind Transfer Flow
-1. **Agent presses** `*1` or `*1[destination]`
+### Softphone-Style DTMF Transfer Flow
+
+#### Blind Transfer Flow (DTMF)
+1. **During active call**, agent presses `*1`
+2. **System prompts**: "Please enter destination number"
+3. **Agent enters** destination number
+4. **System immediately** transfers caller to destination
+5. **Agent is disconnected** from call
+
+#### Attended Transfer Flow (DTMF)
+1. **During active call**, agent presses `*2`
+2. **System prompts**: "Please enter destination number"
+3. **Agent enters** destination number
+4. **System calls** destination and connects to agent
+5. **Agent consults** with destination
+6. **Agent presses `##`** to complete transfer, or `#*` to cancel
+7. **Transfer completes** or cancels based on agent action
+
+### Legacy Feature Code Transfer Flow
+
+#### Blind Transfer Flow (Feature Codes)
+1. **Agent dials** `*1` or `*1[destination]`
 2. **System prompts** for destination (if not direct)
 3. **Agent enters** destination number
 4. **System immediately** transfers caller to destination
 5. **Agent is disconnected** from call
 
-### Attended Transfer Flow
-1. **Agent presses** `*3` or `*3[destination]`
+#### Attended Transfer Flow (Feature Codes)
+1. **Agent dials** `*3` or `*3[destination]`
 2. **System prompts** for destination (if not direct)
 3. **Agent enters** destination number
 4. **System calls** destination and connects to agent
@@ -128,10 +160,13 @@ The FreeSWITCH transfer system provides comprehensive blind and attended transfe
 
 ### CLI Testing Commands
 ```bash
-# Test blind transfer
+# Test DTMF blind transfer (during active call)
 fs_cli -x "originate loopback/1001 &transfer(*1 XML features)"
 
-# Test attended transfer
+# Test DTMF attended transfer (during active call)
+fs_cli -x "originate loopback/1001 &transfer(*2 XML features)"
+
+# Test legacy feature code transfer
 fs_cli -x "originate loopback/1001 &transfer(*3 XML features)"
 
 # Test direct transfer
@@ -142,6 +177,16 @@ fs_cli -x "show channels"
 ```
 
 ### Manual Testing Steps
+
+#### DTMF Transfer Testing
+1. **Make test call** to extension 1001
+2. **During active call**, press `*1` (blind) or `*2` (attended)
+3. **Enter destination** when prompted
+4. **For attended transfer**: Consult with destination, then press `##` to complete
+5. **Verify transfer** completes correctly
+6. **Check caller ID** is preserved
+
+#### Legacy Feature Code Testing
 1. **Make test call** to extension 1001
 2. **Press transfer code** (e.g., `*1`)
 3. **Enter destination** when prompted
