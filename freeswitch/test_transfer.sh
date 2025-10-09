@@ -31,19 +31,14 @@ echo ""
 
 # Test dialplan
 echo "4. Testing dialplan..."
-fs_cli -x "regex *1"
-fs_cli -x "regex *2"
+fs_cli -x "dialplan xml_locate *1"
+fs_cli -x "dialplan xml_locate *2"
 echo ""
 
 # Check features context
 echo "5. Testing features context..."
-fs_cli -x "regex blind_transfer_dtmf"
-fs_cli -x "regex attended_transfer_dtmf"
-echo ""
-
-# Check if bind_digit_action is working
-echo "6. Checking DTMF bindings..."
-fs_cli -x "show applications bind_digit_action"
+fs_cli -x "dialplan xml_locate blind_transfer_dtmf"
+fs_cli -x "dialplan xml_locate attended_transfer_dtmf"
 echo ""
 
 echo "=== Testing Commands ==="
@@ -66,16 +61,8 @@ echo ""
 echo "Check DTMF events:"
 echo "fs_cli -x \"console loglevel debug\""
 echo ""
-echo "Test specific extensions:"
-echo "fs_cli -x \"regex *1\""
-echo "fs_cli -x \"regex *2\""
-echo "fs_cli -x \"regex blind_transfer_dtmf\""
-echo ""
-echo "Check dialplan contexts:"
-echo "fs_cli -x \"show dialplan\""
-echo ""
-echo "Test a simple call:"
-echo "fs_cli -x \"originate loopback/1001 ^&echo\""
+echo "Monitor calls:"
+echo "fs_cli -x \"conference list\""
 echo ""
 
 echo "=== Troubleshooting ==="
