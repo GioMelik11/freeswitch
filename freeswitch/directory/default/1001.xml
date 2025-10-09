@@ -13,6 +13,14 @@
       <variable name="outbound_caller_id_name" value="$${outbound_caller_name}"/>
       <variable name="outbound_caller_id_number" value="$${outbound_caller_id}"/>
       <variable name="callgroup" value="support"/>
+
+      <!-- Transfer Settings -->
+      <variable name="transfer_fallback_extension" value="operator"/>
+      <variable name="transfer_ringback" value="$${hold_music}"/>
+      <variable name="transfer_timeout" value="30"/>
+      <variable name="transfer_continue_on_fail" value="true"/>
+      <variable name="transfer_hangup_after_bridge" value="true"/>
+      <variable name="transfer_preserve_caller_id" value="true"/>
     </variables>
   </user>
 </include>
