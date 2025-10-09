@@ -42,14 +42,6 @@
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
         <action application="hash" data="insert/${domain_name}-call_return/${dialed_extension}/${caller_id_number}"/>
-
-        <!-- Enable DTMF Transfer Actions for Active Calls -->
-        <action application="bind_digit_action" data="*1,execute_extension::blind_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="*2,execute_extension::attended_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="##,execute_extension::complete_attended_transfer XML features"/>
-        <action application="bind_digit_action" data="#*,execute_extension::cancel_transfer XML features"/>
-        <action application="bind_digit_action" data="**,execute_extension::transfer_help_dtmf XML features"/>
-
         <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
         <action application="answer"/>
         <action application="sleep" data="1000"/>
@@ -69,14 +61,6 @@
         <action application="set" data="proxy_media=false"/>
         <action application="set" data="media_mix_inbound_outbound_codecs=false"/>
         <action application="set" data="rtp_secure_media=false"/>
-
-        <!-- Enable DTMF Transfer Actions for Active Calls -->
-        <action application="bind_digit_action" data="*1,execute_extension::blind_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="*2,execute_extension::attended_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="##,execute_extension::complete_attended_transfer XML features"/>
-        <action application="bind_digit_action" data="#*,execute_extension::cancel_transfer XML features"/>
-        <action application="bind_digit_action" data="**,execute_extension::transfer_help_dtmf XML features"/>
-
         <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
         <action application="answer"/>
         <action application="sleep" data="1000"/>
