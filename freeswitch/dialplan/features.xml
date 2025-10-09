@@ -2,166 +2,56 @@
 <include>
   <context name="features">
 
-    <!-- Blind Transfer - Transfer to extension without consultation -->
-    <extension name="blind_transfer">
-      <condition field="destination_number" expression="^blind_transfer$">
-        <action application="answer"/>
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-        <action application="execute_extension" data="blind_transfer_handler XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Attended Transfer - Consult before transferring -->
-    <extension name="attended_transfer">
-      <condition field="destination_number" expression="^attended_transfer$">
-        <action application="answer"/>
-        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="att_xfer" data="user/${digits}@$${domain}"/>
-      </condition>
-    </extension>
-
-    <!-- Legacy dx - Blind transfer for phones without transfer button -->
+    <!-- In call Transfer for phones without a transfer button -->
     <extension name="dx">
       <condition field="destination_number" expression="^dx$">
-        <action application="answer"/>
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-        <action application="execute_extension" data="blind_transfer_handler XML features"/>
+	<action application="answer"/>
+	<action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+	<action application="execute_extension" data="is_transfer XML features"/>
       </condition>
     </extension>
 
-    <!-- Legacy att_xfer - Attended transfer -->
     <extension name="att_xfer">
-      <condition field="destination_number" expression="^att_xfer$">
-        <action application="answer"/>
-        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="att_xfer" data="user/${digits}@$${domain}"/>
-      </condition>
+     <condition field="destination_number" expression="^att_xfer$">
+       <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
+       <action application="set" data="origination_cancel_key=#"/>
+       <action application="att_xfer" data="user/${digits}@$${domain}"/>
+     </condition>
     </extension>
 
-    <!-- Blind Transfer Handler - Routes to internal or external -->
-    <extension name="blind_transfer_handler">
-      <condition field="destination_number" expression="^blind_transfer_handler$"/>
-      <condition field="${digits}" expression="^(10[0-9][0-9])$">
-        <!-- Internal extension transfer -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="transfer" data="-bleg $1 XML default"/>
-      </condition>
-      <condition field="${digits}" expression="^9(\+?[1-9][0-9]{7,14})$">
-        <!-- External number transfer (with 9 prefix) -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="transfer" data="-bleg sofia/gateway/sip_trunk_provider/$1 XML default"/>
-      </condition>
-      <condition field="${digits}" expression="^(\+?[1-9][0-9]{7,14})$">
-        <!-- Direct external number transfer -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="transfer" data="-bleg sofia/gateway/sip_trunk_provider/$1 XML default"/>
-      </condition>
-      <condition field="${digits}" expression="^(.*)$">
-        <!-- Default - try as internal extension -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="transfer" data="-bleg ${digits} XML default"/>
-      </condition>
-      <anti-action application="eval" data="cancel transfer"/>
-    </extension>
-
-    <!-- Legacy is_transfer handler -->
     <extension name="is_transfer">
       <condition field="destination_number" expression="^is_transfer$"/>
       <condition field="${digits}" expression="^(\d+)$">
-        <action application="transfer" data="-bleg ${digits} XML default"/>
-        <anti-action application="eval" data="cancel transfer"/>
-      </condition>
-    </extension>
-
-    <!-- Enhanced Attended Transfer with External Number Support -->
-    <extension name="attended_transfer_external">
-      <condition field="destination_number" expression="^att_xfer_ext$">
-        <action application="answer"/>
-        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="execute_extension" data="attended_transfer_handler XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Attended Transfer Handler - Routes to internal or external -->
-    <extension name="attended_transfer_handler">
-      <condition field="destination_number" expression="^attended_transfer_handler$"/>
-      <condition field="${digits}" expression="^(10[0-9][0-9])$">
-        <!-- Internal extension attended transfer -->
-        <action application="att_xfer" data="user/${digits}@$${domain}"/>
-      </condition>
-      <condition field="${digits}" expression="^9(\+?[1-9][0-9]{7,14})$">
-        <!-- External number attended transfer (with 9 prefix) -->
-        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/$1"/>
-      </condition>
-      <condition field="${digits}" expression="^(\+?[1-9][0-9]{7,14})$">
-        <!-- Direct external number attended transfer -->
-        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/${digits}"/>
-      </condition>
-      <condition field="${digits}" expression="^(.*)$">
-        <!-- Default - try as internal extension -->
-        <action application="att_xfer" data="user/${digits}@$${domain}"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer with Caller ID Preservation -->
-    <extension name="transfer_with_cid">
-      <condition field="destination_number" expression="^transfer_cid$">
-        <action application="answer"/>
-        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="execute_extension" data="transfer_cid_handler XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer with Caller ID Handler -->
-    <extension name="transfer_cid_handler">
-      <condition field="destination_number" expression="^transfer_cid_handler$"/>
-      <condition field="${digits}" expression="^(10[0-9][0-9])$">
-        <!-- Preserve original caller ID for internal transfers -->
-        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
-        <action application="transfer" data="-bleg ${digits} XML default"/>
-      </condition>
-      <condition field="${digits}" expression="^9(\+?[1-9][0-9]{7,14})$">
-        <!-- External transfer with preserved caller ID -->
-        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
-        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
-        <action application="transfer" data="-bleg sofia/gateway/sip_trunk_provider/$1 XML default"/>
-      </condition>
-      <condition field="${digits}" expression="^(.*)$">
-        <!-- Default transfer -->
-        <action application="transfer" data="-bleg ${digits} XML default"/>
+	<action application="transfer" data="-bleg ${digits} XML default"/>
+	<anti-action application="eval" data="cancel transfer"/>
       </condition>
     </extension>
 
     <!-- Used to transfer both legs into a conference -->
     <extension name="cf">
       <condition field="destination_number" expression="^cf$">
-        <action application="answer"/>
-        <action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
+	<action application="answer"/>
+	<action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
       </condition>
     </extension>
 
     <extension name="please_hold">
       <condition field="destination_number" expression="^(10[01][0-9])$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="answer"/>
-        <action application="sleep" data="1500"/>
-        <action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
-        <action application="transfer" data="$1 XML default"/>
+	<action application="set" data="transfer_ringback=$${hold_music}"/>
+	<action application="answer"/>
+	<action application="sleep" data="1500"/>
+	<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+	<action application="transfer" data="$1 XML default"/>
       </condition>
     </extension>
-
+ 
     <extension name="is_secure" continue="true">
-      <!-- Only Truly consider it secure if its TLS and SRTP -->
+      <!-- Only Truly consider it secure if its TLS and SRTP --> 
       <condition field="${sip_via_protocol}" expression="tls"/>
       <condition field="${rtp_secure_media_confirmed}" expression="^true$">
-        <action application="sleep" data="1000"/>
-        <action application="playback" data="misc/call_secured.wav"/>
-        <anti-action application="eval" data="not_secure"/>
+	<action application="sleep" data="1000"/>
+	<action application="playback" data="misc/call_secured.wav"/>
+	<anti-action application="eval" data="not_secure"/>
       </condition>
     </extension>
 

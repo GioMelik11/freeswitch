@@ -13,20 +13,6 @@
       <variable name="default_gateway" value="$${default_provider}"/>
       <variable name="default_areacode" value="$${default_areacode}"/>
       <variable name="transfer_fallback_extension" value="operator"/>
-
-      <!-- Transfer Configuration -->
-      <variable name="transfer_ringback" value="$${hold_music}"/>
-      <variable name="transfer_timeout" value="30"/>
-      <variable name="transfer_continue_on_fail" value="true"/>
-      <variable name="transfer_hangup_after_bridge" value="true"/>
-      <variable name="transfer_preserve_caller_id" value="true"/>
-
-      <!-- Transfer Feature Codes -->
-      <variable name="blind_transfer_code" value="*1"/>
-      <variable name="attended_transfer_code" value="*3"/>
-      <variable name="operator_code" value="*0"/>
-      <variable name="conference_code" value="*9"/>
-      <variable name="transfer_help_code" value="**"/>
     </variables>
 
     <groups>
