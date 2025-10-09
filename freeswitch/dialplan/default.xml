@@ -31,11 +31,11 @@
         <action application="export" data="RFC2822_DATE=${strftime(%a, %d %b %Y %T %z)}"/>
 
         <!-- Enable DTMF Transfer Actions for All Active Calls -->
-        <action application="bind_digit_action" data="*1,execute_extension::blind_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="*2,execute_extension::attended_transfer_dtmf XML features"/>
-        <action application="bind_digit_action" data="##,execute_extension::complete_attended_transfer XML features"/>
-        <action application="bind_digit_action" data="#*,execute_extension::cancel_transfer XML features"/>
-        <action application="bind_digit_action" data="**,execute_extension::transfer_help_dtmf XML features"/>
+        <action application="bind_digit_action" data="*1,transfer,blind_transfer_dtmf,XML,features"/>
+        <action application="bind_digit_action" data="*2,transfer,attended_transfer_dtmf,XML,features"/>
+        <action application="bind_digit_action" data="##,transfer,complete_attended_transfer,XML,features"/>
+        <action application="bind_digit_action" data="#*,transfer,cancel_transfer,XML,features"/>
+        <action application="bind_digit_action" data="**,transfer,transfer_help_dtmf,XML,features"/>
       </condition>
     </extension>
 
