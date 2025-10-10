@@ -121,19 +121,10 @@ fs_cli -x "show channels"
 
 #### 3. Attended Transfer (att_xfer_enhanced)
 - **Code**: `att_xfer_enhanced`
-- **Function**: Enhanced attended transfer with proper channel variables
+- **Function**: Enhanced attended transfer
 - **Usage**: Dial `att_xfer_enhanced` during a call, then enter destination
 
-#### 4. Standard Attended Transfer (86)
-- **Code**: `86`
-- **Function**: Standard attended transfer following official FreeSWITCH pattern
-- **Usage**: Dial `86` during a call, then enter extension number
-- **Features**: 
-  - `#` - Cancel transfer and return to caller
-  - `*` - Hangup B leg and bridge A to C
-  - `0` - Convert to three-way conference
-
-#### 5. Legacy Transfer Features
+#### 4. Legacy Transfer Features
 - **`att_xfer`**: Original attended transfer (internal users only)
 - **`cf`**: Conference transfer (both legs)
 
@@ -194,25 +185,6 @@ fs_cli -x "show channels"
 ```xml
 <action application="set" data="origination_cancel_key=#"/>
 ```
-
-#### 4. Attended Transfer Variables (att_xfer)
-Based on [FreeSWITCH official documentation](https://developer.signalwire.com/freeswitch/FreeSWITCH-Explained/Modules/mod-dptools/6586411/):
-
-```xml
-<!-- Cancel transfer and return to caller -->
-<action application="set" data="attxfer_cancel_key=#"/>
-
-<!-- Hangup B leg and bridge A to C -->
-<action application="set" data="attxfer_hangup_key=*"/>
-
-<!-- Convert to three-way conference -->
-<action application="set" data="attxfer_conf_key=0"/>
-```
-
-**Attended Transfer DTMF Controls:**
-- **`#` (attxfer_cancel_key)**: Cancel transfer and return to original caller
-- **`*` (attxfer_hangup_key)**: Hangup B leg and bridge A to C
-- **`0` (attxfer_conf_key)**: Convert to three-way conference
 
 ### Transfer Contexts
 
@@ -327,16 +299,6 @@ fs_cli -x "uuid_bridge <uuid1> <uuid2>"
 3. **Speak with destination**: Confirm transfer
 4. **Complete transfer**: Press `#` or hangup
 
-### Scenario 10: Standard Attended Transfer (86)
-1. **During active call**: Dial `86`
-2. **Enter extension**: Dial `1001`
-3. **Speak with destination**: Confirm transfer
-4. **Transfer options**:
-   - Press `#` to cancel and return to caller
-   - Press `*` to hangup B leg and bridge A to C
-   - Press `0` to convert to three-way conference
-   - Hangup to complete transfer
-
 ### Scenario 7: Enhanced Manual Transfer (dx)
 1. **During active call**: Dial `dx`
 2. **Enter destination**: 
@@ -425,7 +387,7 @@ fs_cli -x "dialplan default 1001"
 ### 1. Features Configuration
 - **File**: `dialplan/features.xml`
 - **Purpose**: Transfer feature codes
-- **Examples**: `dx`, `att_xfer`, `cf`, `86`
+- **Examples**: `dx`, `att_xfer`, `cf`
 
 ### 2. Default Dialplan
 - **File**: `dialplan/default.xml`
@@ -436,26 +398,6 @@ fs_cli -x "dialplan default 1001"
 - **File**: `dialplan/public.xml`
 - **Purpose**: External transfer routing
 - **Examples**: DID transfers, external transfers
-
-### 4. DTMF Binding Configuration
-To bind attended transfer to DTMF keys (following [official documentation](https://developer.signalwire.com/freeswitch/FreeSWITCH-Explained/Modules/mod-dptools/6586411/)):
-
-```xml
-<!-- Bind DTMF 3 to attended transfer -->
-<action application="bind_meta_app" data="3 a a execute_extension::86 XML features"/>
-
-<!-- Bind DTMF 1 to attended transfer in local extensions -->
-<extension name="local_number">
-  <condition field="destination_number" expression="^(\d{3})$">
-    <action application="bind_meta_app" data="1 b s execute_extension::attended_xfer XML features"/>
-    <!-- ... other actions ... -->
-  </condition>
-</extension>
-```
-
-**DTMF Binding Options:**
-- **`3 a a`**: Press `*3` during any call to activate attended transfer
-- **`1 b s`**: Press `*1` during bridged call to activate attended transfer
 
 ## Related Documentation
 - [Dialplan Guide](dialplan.md)
