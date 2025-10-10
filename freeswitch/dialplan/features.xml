@@ -200,6 +200,7 @@
         <action application="log" data="INFO Transfer to 1003 triggered via DTMF"/>
         <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="set" data="transfer_timeout=30"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
         <action application="transfer" data="1003 XML default"/>
       </condition>
     </extension>
