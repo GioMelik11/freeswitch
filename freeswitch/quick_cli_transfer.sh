@@ -28,7 +28,7 @@ echo ""
 
 # Get call UUIDs
 echo "[INFO] Getting call UUIDs for transfer..."
-CALLS=$($FS_CLI -x "show calls" | grep "uuid:" | awk '{print $1}' | cut -d: -f2)
+CALLS=$($FS_CLI -x "show calls" | grep -v "uuid,direction" | grep -v "^$" | awk -F',' '{print $1}' | grep -v "^uuid$")
 
 if [ -z "$CALLS" ]; then
     echo "[WARNING] No active calls found. Please make a call first."
