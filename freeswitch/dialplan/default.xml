@@ -43,7 +43,7 @@
         <action application="set" data="continue_on_fail=true"/>
         <action application="hash" data="insert/${domain_name}-call_return/${dialed_extension}/${caller_id_number}"/>
         <!-- Bind transfer feature codes to DTMF keys -->
-        <action application="bind_meta_app" data="1 b s execute_extension::dx XML features"/>
+        <action application="bind_meta_app" data="1 b s execute_extension::transfer_to_1003 XML features"/>
         <action application="bind_meta_app" data="2 b s execute_extension::dx XML features"/>
         <action application="bind_meta_app" data="3 b s execute_extension::dx XML features"/>
         <action application="bind_meta_app" data="4 b s execute_extension::dx XML features"/>
@@ -72,7 +72,7 @@
         <action application="set" data="media_mix_inbound_outbound_codecs=false"/>
         <action application="set" data="rtp_secure_media=false"/>
         <!-- Bind transfer feature codes to DTMF keys -->
-        <action application="bind_meta_app" data="1 b s execute_extension::dx XML features"/>
+        <action application="bind_meta_app" data="1 b s execute_extension::transfer_to_1003 XML features"/>
         <action application="bind_meta_app" data="2 b s execute_extension::dx XML features"/>
         <action application="bind_meta_app" data="3 b s execute_extension::dx XML features"/>
         <action application="bind_meta_app" data="4 b s execute_extension::dx XML features"/>

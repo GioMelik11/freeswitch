@@ -7,7 +7,6 @@
       <condition field="destination_number" expression="^dx$">
         <action application="answer"/>
         <action application="log" data="INFO Transfer dx triggered"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
         <action application="log" data="INFO Transfer dx digits received: ${digits}"/>
         <action application="execute_extension" data="is_transfer XML features"/>
@@ -25,10 +24,7 @@
     <extension name="is_transfer">
       <condition field="destination_number" expression="^is_transfer$"/>
       <condition field="${digits}" expression="^(\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg $1 XML default"/>
+        <action application="transfer" data="-bleg ${digits} XML default"/>
         <anti-action application="eval" data="cancel transfer"/>
       </condition>
     </extension>
