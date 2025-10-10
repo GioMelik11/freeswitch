@@ -5,232 +5,53 @@
     <!-- In call Transfer for phones without a transfer button -->
     <extension name="dx">
       <condition field="destination_number" expression="^dx$">
-        <action application="answer"/>
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-        <action application="execute_extension" data="is_transfer XML features"/>
+	<action application="answer"/>
+	<action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+	<action application="execute_extension" data="is_transfer XML features"/>
       </condition>
     </extension>
 
     <extension name="att_xfer">
-      <condition field="destination_number" expression="^att_xfer$">
-        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="att_xfer" data="user/${digits}@$${domain}"/>
-      </condition>
+     <condition field="destination_number" expression="^att_xfer$">
+       <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
+       <action application="set" data="origination_cancel_key=#"/>
+       <action application="att_xfer" data="user/${digits}@$${domain}"/>
+     </condition>
     </extension>
 
     <extension name="is_transfer">
       <condition field="destination_number" expression="^is_transfer$"/>
       <condition field="${digits}" expression="^(\d+)$">
-        <action application="transfer" data="-bleg ${digits} XML default"/>
-        <anti-action application="eval" data="cancel transfer"/>
+	<action application="transfer" data="-bleg ${digits} XML default"/>
+	<anti-action application="eval" data="cancel transfer"/>
       </condition>
     </extension>
 
     <!-- Used to transfer both legs into a conference -->
     <extension name="cf">
       <condition field="destination_number" expression="^cf$">
-        <action application="answer"/>
-        <action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
+	<action application="answer"/>
+	<action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
       </condition>
     </extension>
 
     <extension name="please_hold">
       <condition field="destination_number" expression="^(10[01][0-9])$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="answer"/>
-        <action application="sleep" data="1500"/>
-        <action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
-        <action application="transfer" data="$1 XML default"/>
+	<action application="set" data="transfer_ringback=$${hold_music}"/>
+	<action application="answer"/>
+	<action application="sleep" data="1500"/>
+	<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+	<action application="transfer" data="$1 XML default"/>
       </condition>
     </extension>
-
-    <!-- Enhanced Transfer Features -->
-
-    <!-- Transfer to Extension (*1 + extension) -->
-    <extension name="transfer_extension">
-      <condition field="destination_number" expression="^\*1(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="${transfer_destination} XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer to External Number (*2 + number) -->
-    <extension name="transfer_external">
-      <condition field="destination_number" expression="^\*2(\d+)$">
-        <action application="set" data="transfer_destination=9$1"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=60"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="${transfer_destination} XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer to Queue (*3 + queue) -->
-    <extension name="transfer_queue">
-      <condition field="destination_number" expression="^\*3(\d+)$">
-        <action application="set" data="transfer_destination=20$1"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=45"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="${transfer_destination} XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer to Conference (*4 + conference) -->
-    <extension name="transfer_conference">
-      <condition field="destination_number" expression="^\*4(\d+)$">
-        <action application="set" data="transfer_destination=30$1"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-both ${transfer_destination} XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Attended Transfer to Extension (*5 + extension) -->
-    <extension name="attended_transfer_extension">
-      <condition field="destination_number" expression="^\*5(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="playback" data="ivr/ivr-please_hold.wav"/>
-        <action application="att_xfer" data="user/${transfer_destination}@$${domain}"/>
-      </condition>
-    </extension>
-
-    <!-- Attended Transfer to External (*6 + number) -->
-    <extension name="attended_transfer_external">
-      <condition field="destination_number" expression="^\*6(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="playback" data="ivr/ivr-please_hold.wav"/>
-        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/9${transfer_destination}"/>
-      </condition>
-    </extension>
-
-    <!-- Blind Transfer with Confirmation (*7 + destination) -->
-    <extension name="blind_transfer_confirm">
-      <condition field="destination_number" expression="^\*7(.+)$">
-        <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg ${transfer_destination} XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer to Operator (*0) -->
-    <extension name="transfer_operator">
-      <condition field="destination_number" expression="^\*0$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="operator XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer Status Check (*8) -->
-    <extension name="transfer_status">
-      <condition field="destination_number" expression="^\*8$">
-        <action application="answer"/>
-        <action application="playback" data="ivr/ivr-call_transfer_active.wav"/>
-        <action application="sleep" data="2000"/>
-        <action application="hangup" data="NORMAL_CLEARING"/>
-      </condition>
-    </extension>
-
-    <!-- Cancel Transfer (*9) -->
-    <extension name="cancel_transfer">
-      <condition field="destination_number" expression="^\*9$">
-        <action application="answer"/>
-        <action application="playback" data="ivr/ivr-transfer_cancelled.wav"/>
-        <action application="sleep" data="2000"/>
-        <action application="hangup" data="NORMAL_CLEARING"/>
-      </condition>
-    </extension>
-
-    <!-- Enhanced Manual Transfer (dx) - Now supports external numbers -->
-    <extension name="dx_enhanced">
-      <condition field="destination_number" expression="^dx$">
-        <action application="answer"/>
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-        <action application="execute_extension" data="is_transfer_enhanced XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Enhanced Transfer Handler -->
-    <extension name="is_transfer_enhanced">
-      <condition field="destination_number" expression="^is_transfer_enhanced$"/>
-      <!-- Internal extension (4 digits) -->
-      <condition field="${digits}" expression="^(\d{4})$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg $1 XML default"/>
-        <anti-action application="eval" data="transfer failed"/>
-      </condition>
-      <!-- External number (starts with 9) -->
-      <condition field="${digits}" expression="^(9\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=60"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg $1 XML default"/>
-        <anti-action application="eval" data="transfer failed"/>
-      </condition>
-      <!-- Queue number (starts with 2) -->
-      <condition field="${digits}" expression="^(2\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=45"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg $1 XML default"/>
-        <anti-action application="eval" data="transfer failed"/>
-      </condition>
-      <!-- Conference number (starts with 3) -->
-      <condition field="${digits}" expression="^(3\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-both $1 XML default"/>
-        <anti-action application="eval" data="transfer failed"/>
-      </condition>
-    </extension>
-
-    <!-- Enhanced Attended Transfer -->
-    <extension name="att_xfer_enhanced">
-      <condition field="destination_number" expression="^att_xfer_enhanced$">
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
-        <action application="execute_extension" data="is_att_xfer_enhanced XML features"/>
-      </condition>
-    </extension>
-
-    <!-- Enhanced Attended Transfer Handler -->
-    <extension name="is_att_xfer_enhanced">
-      <condition field="destination_number" expression="^is_att_xfer_enhanced$"/>
-      <!-- Internal extension -->
-      <condition field="${digits}" expression="^(\d{4})$">
-        <action application="playback" data="ivr/ivr-please_hold.wav"/>
-        <action application="att_xfer" data="user/$1@$${domain}"/>
-        <anti-action application="eval" data="attended transfer failed"/>
-      </condition>
-      <!-- External number -->
-      <condition field="${digits}" expression="^(9\d+)$">
-        <action application="playback" data="ivr/ivr-please_hold.wav"/>
-        <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/$1"/>
-        <anti-action application="eval" data="attended transfer failed"/>
-      </condition>
-    </extension>
-
+ 
     <extension name="is_secure" continue="true">
-      <!-- Only Truly consider it secure if its TLS and SRTP -->
+      <!-- Only Truly consider it secure if its TLS and SRTP --> 
       <condition field="${sip_via_protocol}" expression="tls"/>
       <condition field="${rtp_secure_media_confirmed}" expression="^true$">
-        <action application="sleep" data="1000"/>
-        <action application="playback" data="misc/call_secured.wav"/>
-        <anti-action application="eval" data="not_secure"/>
+	<action application="sleep" data="1000"/>
+	<action application="playback" data="misc/call_secured.wav"/>
+	<anti-action application="eval" data="not_secure"/>
       </condition>
     </extension>
 

@@ -199,57 +199,5 @@
       </condition>
     </extension>
 
-    <!-- Transfer Feature Codes -->
-
-    <!-- Quick Transfer to Extension (*1 + extension) -->
-    <extension name="Quick_Transfer_Extension">
-      <condition field="destination_number" expression="^\*1(\d{4})$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="$1 XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Quick Transfer to External (*2 + number) -->
-    <extension name="Quick_Transfer_External">
-      <condition field="destination_number" expression="^\*2(\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=60"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="9$1 XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Quick Transfer to Queue (*3 + queue) -->
-    <extension name="Quick_Transfer_Queue">
-      <condition field="destination_number" expression="^\*3(\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=45"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="20$1 XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Quick Transfer to Conference (*4 + conference) -->
-    <extension name="Quick_Transfer_Conference">
-      <condition field="destination_number" expression="^\*4(\d+)$">
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-both 30$1 XML default"/>
-      </condition>
-    </extension>
-
-    <!-- Transfer Help (*8) -->
-    <extension name="Transfer_Help">
-      <condition field="destination_number" expression="^\*8$">
-        <action application="answer"/>
-        <action application="playback" data="ivr/ivr-transfer_help.wav"/>
-        <action application="sleep" data="3000"/>
-        <action application="hangup" data="NORMAL_CLEARING"/>
-      </condition>
-    </extension>
-
   </context>
 </include>
