@@ -14,20 +14,6 @@
       </condition>
     </extension>
 
-    <!-- Quick Transfer Extension (*1 + extension) -->
-    <extension name="quick_transfer">
-      <condition field="destination_number" expression="^quick_transfer$">
-        <action application="answer"/>
-        <action application="log" data="INFO Quick transfer triggered"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <action application="read" data="4 4 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-        <action application="log" data="INFO Quick transfer digits received: ${digits}"/>
-        <action application="set" data="transfer_timeout=30"/>
-        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
-        <action application="transfer" data="-bleg ${digits} XML default"/>
-      </condition>
-    </extension>
-
     <extension name="att_xfer">
       <condition field="destination_number" expression="^att_xfer$">
         <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
