@@ -56,30 +56,26 @@
     </extension>
 
     <!-- DTMF-based Transfer Manual Keypad -->
-    <!-- ## - Blind Transfer (FreePBX/Asterisk style) -->
+    <!-- ## - Blind Transfer to dialed extension -->
     <extension name="dtmf_blind_transfer">
       <condition field="destination_number" expression="^dtmf_blind_transfer$">
         <action application="answer"/>
-        <action application="sleep" data="200"/>
-        <!-- Start hold music immediately like FreePBX -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <!-- Capture extension while music plays - no audio prompt -->
-        <action application="read" data="transfer_digits 4 11 '$${hold_music}' digits 30000 #"/>
-        <!-- Immediate transfer like FreePBX -->
+        <action application="sleep" data="500"/>
+        <action application="playback" data="ivr/ivr-enter_destination_number.wav"/>
+        <action application="read" data="transfer_digits 4 11 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
         <action application="transfer" data="${transfer_digits} XML default"/>
       </condition>
     </extension>
 
-    <!-- *2 - Attended Transfer (FreePBX style) -->
+    <!-- *2 - Attended Transfer with prompt -->
     <extension name="dtmf_attended_transfer">
       <condition field="destination_number" expression="^dtmf_attended_transfer$">
         <action application="answer"/>
-        <action application="sleep" data="200"/>
-        <!-- Start hold music immediately like FreePBX -->
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
-        <!-- Capture extension while music plays -->
-        <action application="read" data="transfer_digits 4 11 '$${hold_music}' digits 30000 #"/>
-        <!-- Attended transfer like FreePBX -->
+        <action application="sleep" data="500"/>
+        <action application="playback" data="ivr/ivr-enter_destination_number.wav"/>
+        <action application="read" data="transfer_digits 4 11 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="playback" data="ivr/ivr-consulting_transfer.wav"/>
         <action application="set" data="origination_cancel_key=#"/>
         <action application="att_xfer" data="user/${transfer_digits}@$${domain}"/>
       </condition>
@@ -95,11 +91,11 @@
       </condition>
     </extension>
 
-    <!-- *4 - Hold with Music (FreePBX style) -->
+    <!-- *4 - Hold with Music -->
     <extension name="dtmf_hold">
       <condition field="destination_number" expression="^dtmf_hold$">
         <action application="answer"/>
-        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="playback" data="ivr/ivr-you_are_on_hold.wav"/>
         <action application="playback" data="$${hold_music}"/>
       </condition>
     </extension>
