@@ -205,6 +205,18 @@
       </condition>
     </extension>
 
+    <!-- Direct Transfer Extension - Works with DTMF *1 -->
+    <extension name="direct_transfer_1003">
+      <condition field="destination_number" expression="^direct_transfer_1003$">
+        <action application="log" data="INFO Direct transfer to 1003 triggered"/>
+        <action application="answer"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="set" data="transfer_timeout=30"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="1003 XML default"/>
+      </condition>
+    </extension>
+
     <!-- Enhanced Transfer Handler -->
     <extension name="is_transfer_enhanced">
       <condition field="destination_number" expression="^is_transfer_enhanced$"/>
