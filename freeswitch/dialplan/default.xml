@@ -35,11 +35,19 @@
     <!-- DTMF Transfer Bindings - Available during active calls -->
     <extension name="dtmf_transfer_bindings" continue="true">
       <condition field="${call_direction}" expression="^(inbound|outbound)$">
-        <!-- ## - Blind Transfer -->
+        <!-- ## - Blind Transfer (FreePBX style) -->
         <action application="bind_digit_action" data="transfer,##,exec:transfer,dtmf_blind_transfer XML features"/>
 
-        <!-- *2 - Attended Transfer -->
+        <!-- *2 - Attended Transfer (FreePBX style) -->
         <action application="bind_digit_action" data="att_transfer,*2,exec:transfer,dtmf_attended_transfer XML features"/>
+
+        <!-- FreePBX-style quick transfers -->
+        <action application="bind_digit_action" data="quick_1000,*01,exec:transfer,1000 XML default"/>
+        <action application="bind_digit_action" data="quick_1001,*02,exec:transfer,1001 XML default"/>
+        <action application="bind_digit_action" data="quick_1002,*03,exec:transfer,1002 XML default"/>
+        <action application="bind_digit_action" data="quick_1003,*04,exec:transfer,1003 XML default"/>
+        <action application="bind_digit_action" data="quick_1004,*05,exec:transfer,1004 XML default"/>
+        <action application="bind_digit_action" data="quick_1005,*06,exec:transfer,1005 XML default"/>
 
         <!-- *3 - Conference Transfer -->
         <action application="bind_digit_action" data="conf_transfer,*3,exec:transfer,dtmf_conference_transfer XML features"/>
