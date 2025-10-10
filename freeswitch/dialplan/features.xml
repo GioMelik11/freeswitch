@@ -5,53 +5,143 @@
     <!-- In call Transfer for phones without a transfer button -->
     <extension name="dx">
       <condition field="destination_number" expression="^dx$">
-	<action application="answer"/>
-	<action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
-	<action application="execute_extension" data="is_transfer XML features"/>
+        <action application="answer"/>
+        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="execute_extension" data="is_transfer XML features"/>
       </condition>
     </extension>
 
     <extension name="att_xfer">
-     <condition field="destination_number" expression="^att_xfer$">
-       <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-       <action application="set" data="origination_cancel_key=#"/>
-       <action application="att_xfer" data="user/${digits}@$${domain}"/>
-     </condition>
+      <condition field="destination_number" expression="^att_xfer$">
+        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
+        <action application="set" data="origination_cancel_key=#"/>
+        <action application="att_xfer" data="user/${digits}@$${domain}"/>
+      </condition>
     </extension>
 
     <extension name="is_transfer">
       <condition field="destination_number" expression="^is_transfer$"/>
       <condition field="${digits}" expression="^(\d+)$">
-	<action application="transfer" data="-bleg ${digits} XML default"/>
-	<anti-action application="eval" data="cancel transfer"/>
+        <action application="transfer" data="-bleg ${digits} XML default"/>
+        <anti-action application="eval" data="cancel transfer"/>
       </condition>
     </extension>
 
     <!-- Used to transfer both legs into a conference -->
     <extension name="cf">
       <condition field="destination_number" expression="^cf$">
-	<action application="answer"/>
-	<action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
+        <action application="answer"/>
+        <action application="transfer" data="-both 30${dialed_extension:2} XML default"/>
       </condition>
     </extension>
 
     <extension name="please_hold">
       <condition field="destination_number" expression="^(10[01][0-9])$">
-	<action application="set" data="transfer_ringback=$${hold_music}"/>
-	<action application="answer"/>
-	<action application="sleep" data="1500"/>
-	<action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
-	<action application="transfer" data="$1 XML default"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="answer"/>
+        <action application="sleep" data="1500"/>
+        <action application="playback" data="ivr/ivr-hold_connect_call.wav"/>
+        <action application="transfer" data="$1 XML default"/>
       </condition>
     </extension>
- 
+
     <extension name="is_secure" continue="true">
-      <!-- Only Truly consider it secure if its TLS and SRTP --> 
+      <!-- Only Truly consider it secure if its TLS and SRTP -->
       <condition field="${sip_via_protocol}" expression="tls"/>
       <condition field="${rtp_secure_media_confirmed}" expression="^true$">
-	<action application="sleep" data="1000"/>
-	<action application="playback" data="misc/call_secured.wav"/>
-	<anti-action application="eval" data="not_secure"/>
+        <action application="sleep" data="1000"/>
+        <action application="playback" data="misc/call_secured.wav"/>
+        <anti-action application="eval" data="not_secure"/>
+      </condition>
+    </extension>
+
+    <!-- DTMF-based Transfer Manual Keypad -->
+    <!-- ## - Blind Transfer to dialed extension -->
+    <extension name="dtmf_blind_transfer">
+      <condition field="destination_number" expression="^dtmf_blind_transfer$">
+        <action application="answer"/>
+        <action application="sleep" data="500"/>
+        <action application="playback" data="ivr/ivr-enter_destination_number.wav"/>
+        <action application="read" data="transfer_digits 4 11 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="${transfer_digits} XML default"/>
+      </condition>
+    </extension>
+
+    <!-- *2 - Attended Transfer with prompt -->
+    <extension name="dtmf_attended_transfer">
+      <condition field="destination_number" expression="^dtmf_attended_transfer$">
+        <action application="answer"/>
+        <action application="sleep" data="500"/>
+        <action application="playback" data="ivr/ivr-enter_destination_number.wav"/>
+        <action application="read" data="transfer_digits 4 11 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="playback" data="ivr/ivr-consulting_transfer.wav"/>
+        <action application="set" data="origination_cancel_key=#"/>
+        <action application="att_xfer" data="user/${transfer_digits}@$${domain}"/>
+      </condition>
+    </extension>
+
+    <!-- *3 - Conference Transfer (transfer both legs to conference) -->
+    <extension name="dtmf_conference_transfer">
+      <condition field="destination_number" expression="^dtmf_conference_transfer$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-enter_conference_room.wav"/>
+        <action application="read" data="conf_room 4 4 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="transfer" data="-both 30${conf_room} XML default"/>
+      </condition>
+    </extension>
+
+    <!-- *4 - Hold with Music -->
+    <extension name="dtmf_hold">
+      <condition field="destination_number" expression="^dtmf_hold$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-you_are_on_hold.wav"/>
+        <action application="playback" data="$${hold_music}"/>
+      </condition>
+    </extension>
+
+    <!-- *5 - Return to Operator -->
+    <extension name="dtmf_operator">
+      <condition field="destination_number" expression="^dtmf_operator$">
+        <action application="transfer" data="1000 XML features"/>
+      </condition>
+    </extension>
+
+    <!-- *6 - Call Park -->
+    <extension name="dtmf_park">
+      <condition field="destination_number" expression="^dtmf_park$">
+        <action application="answer"/>
+        <action application="read" data="park_slot 2 2 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="park" data="default ${park_slot}"/>
+      </condition>
+    </extension>
+
+    <!-- *7 - Call Pickup -->
+    <extension name="dtmf_pickup">
+      <condition field="destination_number" expression="^dtmf_pickup$">
+        <action application="answer"/>
+        <action application="read" data="pickup_slot 2 2 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="pickup" data="default ${pickup_slot}"/>
+      </condition>
+    </extension>
+
+    <!-- *8 - Voicemail (if enabled) -->
+    <extension name="dtmf_voicemail">
+      <condition field="destination_number" expression="^dtmf_voicemail$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-enter_mailbox_number.wav"/>
+        <action application="read" data="vm_box 4 4 'tone_stream://%(10000,0,350,440)' digits 10000 #"/>
+        <action application="voicemail" data="check default ${vm_box}"/>
+      </condition>
+    </extension>
+
+    <!-- *9 - Emergency/Help -->
+    <extension name="dtmf_help">
+      <condition field="destination_number" expression="^dtmf_help$">
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-help_menu.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="playback" data="ivr/ivr-dtmf_transfer_help.wav"/>
       </condition>
     </extension>
 
