@@ -95,7 +95,9 @@
     <extension name="attended_transfer_extension">
       <condition field="destination_number" expression="^\*5(\d+)$">
         <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="origination_cancel_key=#"/>
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
         <action application="playback" data="ivr/ivr-please_hold.wav"/>
         <action application="att_xfer" data="user/${transfer_destination}@$${domain}"/>
       </condition>
@@ -105,7 +107,9 @@
     <extension name="attended_transfer_external">
       <condition field="destination_number" expression="^\*6(\d+)$">
         <action application="set" data="transfer_destination=$1"/>
-        <action application="set" data="origination_cancel_key=#"/>
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
         <action application="playback" data="ivr/ivr-please_hold.wav"/>
         <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/9${transfer_destination}"/>
       </condition>
@@ -201,9 +205,22 @@
     <!-- Enhanced Attended Transfer -->
     <extension name="att_xfer_enhanced">
       <condition field="destination_number" expression="^att_xfer_enhanced$">
-        <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
-        <action application="set" data="origination_cancel_key=#"/>
+        <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
         <action application="execute_extension" data="is_att_xfer_enhanced XML features"/>
+      </condition>
+    </extension>
+
+    <!-- Standard Attended Transfer (86) - Following official documentation pattern -->
+    <extension name="attended_transfer_86">
+      <condition field="destination_number" expression="^86$">
+        <action application="read" data="3 4 sounds/getdigits.wav attxfer_callthis 30000 #"/>
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
+        <action application="att_xfer" data="user/${attxfer_callthis}@$${domain}"/>
       </condition>
     </extension>
 
@@ -212,12 +229,18 @@
       <condition field="destination_number" expression="^is_att_xfer_enhanced$"/>
       <!-- Internal extension -->
       <condition field="${digits}" expression="^(\d{4})$">
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
         <action application="playback" data="ivr/ivr-please_hold.wav"/>
         <action application="att_xfer" data="user/$1@$${domain}"/>
         <anti-action application="eval" data="attended transfer failed"/>
       </condition>
       <!-- External number -->
       <condition field="${digits}" expression="^(9\d+)$">
+        <action application="set" data="attxfer_cancel_key=#"/>
+        <action application="set" data="attxfer_hangup_key=*"/>
+        <action application="set" data="attxfer_conf_key=0"/>
         <action application="playback" data="ivr/ivr-please_hold.wav"/>
         <action application="att_xfer" data="sofia/gateway/sip_trunk_provider/$1"/>
         <anti-action application="eval" data="attended transfer failed"/>
