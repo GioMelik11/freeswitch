@@ -32,38 +32,6 @@
       </condition>
     </extension>
 
-    <!-- DTMF Transfer Bindings - Available during active calls -->
-    <extension name="dtmf_transfer_bindings" continue="true">
-      <condition field="${call_direction}" expression="^(inbound|outbound)$">
-        <!-- ## - Blind Transfer -->
-        <action application="bind_digit_action" data="transfer,##,exec:transfer,dtmf_blind_transfer XML features"/>
-
-        <!-- *2 - Attended Transfer -->
-        <action application="bind_digit_action" data="att_transfer,*2,exec:transfer,dtmf_attended_transfer XML features"/>
-
-        <!-- *3 - Conference Transfer -->
-        <action application="bind_digit_action" data="conf_transfer,*3,exec:transfer,dtmf_conference_transfer XML features"/>
-
-        <!-- *4 - Hold with Music -->
-        <action application="bind_digit_action" data="hold,*4,exec:transfer,dtmf_hold XML features"/>
-
-        <!-- *5 - Operator -->
-        <action application="bind_digit_action" data="operator,*5,exec:transfer,dtmf_operator XML features"/>
-
-        <!-- *6 - Call Park -->
-        <action application="bind_digit_action" data="park,*6,exec:transfer,dtmf_park XML features"/>
-
-        <!-- *7 - Call Pickup -->
-        <action application="bind_digit_action" data="pickup,*7,exec:transfer,dtmf_pickup XML features"/>
-
-        <!-- *8 - Voicemail -->
-        <action application="bind_digit_action" data="voicemail,*8,exec:transfer,dtmf_voicemail XML features"/>
-
-        <!-- *9 - Help -->
-        <action application="bind_digit_action" data="help,*9,exec:transfer,dtmf_help XML features"/>
-      </condition>
-    </extension>
-
     <!-- Local Extensions (1000-1099) -->
     <extension name="Local_Extension">
       <condition field="destination_number" expression="^(10[0-9][0-9])$">
