@@ -28,6 +28,18 @@
       </condition>
     </extension>
 
+    <!-- Test Extension for DTMF Binding -->
+    <extension name="test_dtmf">
+      <condition field="destination_number" expression="^test_dtmf$">
+        <action application="answer"/>
+        <action application="log" data="INFO Test DTMF binding triggered"/>
+        <action application="playback" data="tone_stream://%(1000,0,350,440)"/>
+        <action application="sleep" data="2000"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="1003 XML default"/>
+      </condition>
+    </extension>
+
     <extension name="att_xfer">
       <condition field="destination_number" expression="^att_xfer$">
         <action application="read" data="3 4 'tone_stream://%(10000,0,350,440)' digits 30000 #"/>
