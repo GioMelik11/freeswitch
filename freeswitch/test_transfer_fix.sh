@@ -9,22 +9,18 @@ fs_cli -x "module_exists mod_dptools"
 echo ""
 
 echo "2. Checking dialplan features context..."
-fs_cli -x "dialplan"
+fs_cli -x "dialplan features"
 echo ""
 
 echo "3. Testing dx extension directly..."
 fs_cli -x "originate loopback/dx &echo"
 echo ""
 
-echo "4. Testing quick_transfer extension..."
-fs_cli -x "originate loopback/quick_transfer &echo"
+echo "4. Testing transfer_to_1003 extension..."
+fs_cli -x "originate loopback/transfer_to_1003 &echo"
 echo ""
 
-echo "5. Testing test_dtmf extension..."
-fs_cli -x "originate loopback/test_dtmf &echo"
-echo ""
-
-echo "6. Checking active calls..."
+echo "5. Checking active calls..."
 fs_cli -x "show calls"
 echo ""
 
