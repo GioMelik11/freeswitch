@@ -34,7 +34,7 @@
 
     <!-- DTMF Transfer Bindings - Available during active calls -->
     <extension name="dtmf_transfer_bindings" continue="true">
-      <condition>
+      <condition field="${call_direction}" expression="^(inbound|outbound)$">
         <!-- ## - Blind Transfer (FreePBX style) -->
         <action application="bind_digit_action" data="transfer,##,exec:transfer,dtmf_blind_transfer XML features"/>
 
@@ -81,15 +81,6 @@
         <action application="set" data="call_timeout=30"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
-
-        <!-- Apply DTMF bindings to local calls -->
-        <action application="bind_digit_action" data="transfer,##,exec:transfer,dtmf_blind_transfer XML features"/>
-        <action application="bind_digit_action" data="att_transfer,*2,exec:transfer,dtmf_attended_transfer XML features"/>
-        <action application="bind_digit_action" data="quick_1000,*01,exec:transfer,1000 XML default"/>
-        <action application="bind_digit_action" data="quick_1001,*02,exec:transfer,1001 XML default"/>
-        <action application="bind_digit_action" data="quick_1002,*03,exec:transfer,1002 XML default"/>
-        <action application="bind_digit_action" data="quick_1003,*04,exec:transfer,1003 XML default"/>
-
         <action application="hash" data="insert/${domain_name}-call_return/${dialed_extension}/${caller_id_number}"/>
         <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
         <action application="answer"/>
@@ -146,15 +137,6 @@
         <action application="set" data="call_timeout=60"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
-
-        <!-- Apply DTMF bindings to outbound calls -->
-        <action application="bind_digit_action" data="transfer,##,exec:transfer,dtmf_blind_transfer XML features"/>
-        <action application="bind_digit_action" data="att_transfer,*2,exec:transfer,dtmf_attended_transfer XML features"/>
-        <action application="bind_digit_action" data="quick_1000,*01,exec:transfer,1000 XML default"/>
-        <action application="bind_digit_action" data="quick_1001,*02,exec:transfer,1001 XML default"/>
-        <action application="bind_digit_action" data="quick_1002,*03,exec:transfer,1002 XML default"/>
-        <action application="bind_digit_action" data="quick_1003,*04,exec:transfer,1003 XML default"/>
-
         <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
       </condition>
     </extension>
@@ -254,15 +236,6 @@
       <condition field="destination_number" expression="^9664$">
         <action application="answer"/>
         <action application="playback" data="$${hold_music}"/>
-      </condition>
-    </extension>
-
-    <!-- Test DTMF Transfer - Direct Call -->
-    <extension name="Test_DTMF_Transfer">
-      <condition field="destination_number" expression="^9999$">
-        <action application="answer"/>
-        <action application="sleep" data="1000"/>
-        <action application="transfer" data="dtmf_blind_transfer XML features"/>
       </condition>
     </extension>
 
