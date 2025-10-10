@@ -49,8 +49,9 @@
 
     <!-- Transfer to Extension (*1 + extension) -->
     <extension name="transfer_extension">
-      <condition field="destination_number" expression="^\*1(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
+      <condition field="destination_number" expression="^transfer_extension$">
+        <action application="read" data="4 4 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=${digits}"/>
         <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="set" data="transfer_timeout=30"/>
         <action application="playback" data="ivr/ivr-transferring_call.wav"/>
@@ -60,8 +61,9 @@
 
     <!-- Transfer to External Number (*2 + number) -->
     <extension name="transfer_external">
-      <condition field="destination_number" expression="^\*2(\d+)$">
-        <action application="set" data="transfer_destination=9$1"/>
+      <condition field="destination_number" expression="^transfer_external$">
+        <action application="read" data="10 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=9${digits}"/>
         <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="set" data="transfer_timeout=60"/>
         <action application="playback" data="ivr/ivr-transferring_call.wav"/>
@@ -71,8 +73,9 @@
 
     <!-- Transfer to Queue (*3 + queue) -->
     <extension name="transfer_queue">
-      <condition field="destination_number" expression="^\*3(\d+)$">
-        <action application="set" data="transfer_destination=20$1"/>
+      <condition field="destination_number" expression="^transfer_queue$">
+        <action application="read" data="2 2 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=20${digits}"/>
         <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="set" data="transfer_timeout=45"/>
         <action application="playback" data="ivr/ivr-transferring_call.wav"/>
@@ -82,8 +85,9 @@
 
     <!-- Transfer to Conference (*4 + conference) -->
     <extension name="transfer_conference">
-      <condition field="destination_number" expression="^\*4(\d+)$">
-        <action application="set" data="transfer_destination=30$1"/>
+      <condition field="destination_number" expression="^transfer_conference$">
+        <action application="read" data="2 2 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=30${digits}"/>
         <action application="set" data="transfer_ringback=$${hold_music}"/>
         <action application="set" data="transfer_timeout=30"/>
         <action application="playback" data="ivr/ivr-transferring_call.wav"/>
@@ -93,8 +97,9 @@
 
     <!-- Attended Transfer to Extension (*5 + extension) -->
     <extension name="attended_transfer_extension">
-      <condition field="destination_number" expression="^\*5(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
+      <condition field="destination_number" expression="^attended_transfer_extension$">
+        <action application="read" data="4 4 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=${digits}"/>
         <action application="set" data="attxfer_cancel_key=#"/>
         <action application="set" data="attxfer_hangup_key=*"/>
         <action application="set" data="attxfer_conf_key=0"/>
@@ -105,8 +110,9 @@
 
     <!-- Attended Transfer to External (*6 + number) -->
     <extension name="attended_transfer_external">
-      <condition field="destination_number" expression="^\*6(\d+)$">
-        <action application="set" data="transfer_destination=$1"/>
+      <condition field="destination_number" expression="^attended_transfer_external$">
+        <action application="read" data="10 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="set" data="transfer_destination=${digits}"/>
         <action application="set" data="attxfer_cancel_key=#"/>
         <action application="set" data="attxfer_hangup_key=*"/>
         <action application="set" data="attxfer_conf_key=0"/>

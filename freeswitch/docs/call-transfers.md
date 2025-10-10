@@ -296,34 +296,34 @@ fs_cli -x "uuid_bridge <uuid1> <uuid2>"
 ## Transfer Scenarios
 
 ### Scenario 1: Quick Transfer to Extension
-1. **During active call**: Dial `*1`
-2. **Enter extension**: Dial `1001`
+1. **During active call**: Press `*1`
+2. **Enter extension**: Dial `1001` then press `#`
 3. **Transfer completes automatically**
 
 ### Scenario 2: Quick Transfer to External Number
-1. **During active call**: Dial `*2`
-2. **Enter number**: Dial `1234567890` (without 9 prefix)
+1. **During active call**: Press `*2`
+2. **Enter number**: Dial `1234567890` then press `#`
 3. **Transfer completes automatically**
 
 ### Scenario 3: Quick Transfer to Queue
-1. **During active call**: Dial `*3`
-2. **Enter queue**: Dial `00` (for queue 2000)
+1. **During active call**: Press `*3`
+2. **Enter queue**: Dial `00` then press `#` (for queue 2000)
 3. **Transfer completes automatically**
 
 ### Scenario 4: Quick Transfer to Conference
-1. **During active call**: Dial `*4`
-2. **Enter conference**: Dial `01` (for conference 3001)
+1. **During active call**: Press `*4`
+2. **Enter conference**: Dial `01` then press `#` (for conference 3001)
 3. **Both parties join conference**
 
 ### Scenario 5: Attended Transfer to Extension
-1. **During active call**: Dial `*5`
-2. **Enter extension**: Dial `1001`
+1. **During active call**: Press `*5`
+2. **Enter extension**: Dial `1001` then press `#`
 3. **Speak with destination**: Confirm transfer
 4. **Complete transfer**: Press `#` or hangup
 
 ### Scenario 6: Attended Transfer to External
-1. **During active call**: Dial `*6`
-2. **Enter number**: Dial `1234567890`
+1. **During active call**: Press `*6`
+2. **Enter number**: Dial `1234567890` then press `#`
 3. **Speak with destination**: Confirm transfer
 4. **Complete transfer**: Press `#` or hangup
 
