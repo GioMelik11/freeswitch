@@ -6,7 +6,9 @@
     <extension name="dx">
       <condition field="destination_number" expression="^dx$">
         <action application="answer"/>
+        <action application="log" data="INFO Transfer dx triggered"/>
         <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
+        <action application="log" data="INFO Transfer dx digits received: ${digits}"/>
         <action application="execute_extension" data="is_transfer XML features"/>
       </condition>
     </extension>
@@ -168,6 +170,38 @@
         <action application="answer"/>
         <action application="read" data="11 11 'tone_stream://%(10000,0,350,440)' digits 5000 #"/>
         <action application="execute_extension" data="is_transfer_enhanced XML features"/>
+      </condition>
+    </extension>
+
+    <!-- Simple Transfer Extension - Direct pattern matching -->
+    <extension name="transfer_1003">
+      <condition field="destination_number" expression="^1003$">
+        <action application="log" data="INFO Transfer to 1003 triggered"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="set" data="transfer_timeout=30"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="1003 XML default"/>
+      </condition>
+    </extension>
+
+    <!-- Test Transfer Extension -->
+    <extension name="test_transfer">
+      <condition field="destination_number" expression="^test_transfer$">
+        <action application="log" data="INFO Test transfer triggered"/>
+        <action application="answer"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="1003 XML default"/>
+      </condition>
+    </extension>
+
+    <!-- Simple Transfer to 1003 - Direct DTMF binding -->
+    <extension name="transfer_to_1003">
+      <condition field="destination_number" expression="^transfer_to_1003$">
+        <action application="log" data="INFO Transfer to 1003 triggered via DTMF"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="set" data="transfer_timeout=30"/>
+        <action application="playback" data="ivr/ivr-transferring_call.wav"/>
+        <action application="transfer" data="1003 XML default"/>
       </condition>
     </extension>
 
