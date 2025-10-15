@@ -1,7 +1,10 @@
 <configuration name="ivr.conf" description="IVR menus">
   <menus>
-    <menu name="main_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/incoming.wav" greet-short="/usr/share/freeswitch/sounds/ivr/incoming.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/incoming.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/voicemail/incoming.wav" timeout="15000" inter-digit-timeout="3000" max-failures="3" max-timeouts="3" digit-len="1">
+    <!-- Main IVR Menu - Accessed via extension 5000 or inbound calls -->
+    <menu name="main_ivr" greet-long="/usr/share/freeswitch/sounds/ivr/incoming.wav" greet-short="/usr/share/freeswitch/sounds/ivr/incoming.wav" invalid-sound="/usr/share/freeswitch/sounds/ivr/ivr-that_was_an_invalid_entry.wav" exit-sound="/usr/share/freeswitch/sounds/ivr/ivr-thank_you_for_calling.wav" timeout="15000" inter-digit-timeout="3000" max-failures="3" max-timeouts="3" digit-len="1">
+      <!-- Option 1: Transfer to Queue 1 (Agent 1001) -->
       <entry action="menu-exec-app" digits="1" param="transfer 251144 XML default"/>
+      <!-- Option 2: Transfer to Queue 2 (Agent 1003) -->
       <entry action="menu-exec-app" digits="2" param="transfer 255431 XML default"/>
     </menu>
   </menus>
