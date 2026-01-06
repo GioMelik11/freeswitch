@@ -1,6 +1,6 @@
 services:
   freeswitch:
-    image: safarov/freeswitch
+    image: wizhio/freeswitch
     container_name: freeswitch_cont
     environment:
       TZ: "Asia/Tbilisi"

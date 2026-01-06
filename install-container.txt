@@ -1,0 +1,1 @@
+move wizhio-freeswitch.tar to /root folder and run docker load -i /root/wizhio-freeswitch.tar
