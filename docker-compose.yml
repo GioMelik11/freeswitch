@@ -1,8 +1,5 @@
 services:
   freeswitch:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: freeswitch:latest
     container_name: freeswitch
     restart: unless-stopped
