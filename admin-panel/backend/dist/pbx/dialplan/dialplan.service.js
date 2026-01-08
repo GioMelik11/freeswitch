@@ -65,7 +65,7 @@ let DialplanService = class DialplanService {
             const name = esc(trunkName);
             const dest = t.inboundDestination;
             extXml.push(`    <extension name="adminpanel_inbound_${name}">\n` +
-                `      <condition field="${'$'}{sip_gateway_name}" expression="^${name}$">\n` +
+                `      <condition field="${'$'}{sofia_gateway_name}" expression="^${name}$">\n` +
                 `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
                 `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
                 renderDestination(dest) +

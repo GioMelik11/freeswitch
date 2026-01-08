@@ -67,21 +67,20 @@ export class DialplanService {
       const name = esc(trunkName);
       const dest = t.inboundDestination as PbxDestination;
       extXml.push(
-        `    <extension name="adminpanel_inbound_${name}">\n` +
-        `      <condition field="${'$'}{sofia_gateway_name}" expression="^${name}$">\n` +
-        `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
-        `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-        renderDestination(dest) +
-        `      </condition>\n` +
-        `    </extension>`,
+        `  <extension name="adminpanel_inbound_${name}">\n` +
+        `    <!-- Included into public context via dialplan/public.xml -->\n` +
+        `    <condition field="destination_number" expression="^(.*)$">\n` +
+        `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+        `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+        renderDestination(dest).replace(/^ {8}/gm, '      ') +
+        `    </condition>\n` +
+        `  </extension>`,
       );
     }
 
     const body =
       `<include>\n` +
-      `  <context name="public">\n` +
       (extXml.length ? `${extXml.join('\n\n')}\n` : '') +
-      `  </context>\n` +
       `</include>\n`;
 
     // Write without needing etag (we fully control this file)
