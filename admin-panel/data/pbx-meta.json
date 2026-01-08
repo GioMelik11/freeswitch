@@ -1,7 +1,15 @@
 {
   "version": 1,
   "queues": {},
-  "trunks": {},
+  "trunks": {
+    "sip_trunk_provider": {
+      "inboundDestination": {
+        "type": "ivr",
+        "target": "main_ivr"
+      },
+      "prefixRules": []
+    }
+  },
   "aiServices": [
     {
       "id": "14e80c1d-c767-4393-8979-f0ce14b28c7b",
