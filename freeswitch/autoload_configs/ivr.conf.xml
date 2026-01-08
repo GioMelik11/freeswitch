@@ -1,15 +1,7 @@
 <configuration name="ivr.conf" description="IVR menus">
   <menus>
-    <menu name="main_ivr"
-          greet-long="/usr/share/freeswitch/sounds/ivr/incoming.wav"
-          invalid-sound="/usr/share/freeswitch/sounds/en/us/callie/ivr/8000/ivr-that_was_an_invalid_entry.wav"
-          exit-sound="/usr/share/freeswitch/sounds/en/us/callie/ivr/8000/ivr-thank_you_for_calling.wav"
-          timeout="15000"
-          inter-digit-timeout="3000"
-          max-failures="3"
-          max-timeouts="3"
-          digit-len="1">
-      <!-- NOTE: mod_callcenter is not present in the current image, so route to extensions directly -->
+    <menu name="main_ivr" greet-long="ivr/incoming.wav" invalid-sound="en/us/callie/ivr/8000/ivr-that_was_an_invalid_entry.wav" exit-sound="en/us/callie/ivr/8000/ivr-thank_you_for_calling.wav" timeout="15000" inter-digit-timeout="3000" max-failures="3" max-timeouts="3" digit-len="1">
+      <!-- mod_callcenter is not present in current freeswitch image; use transfers instead -->
       <entry action="menu-exec-app" digits="1" param="transfer 1001 XML default"/>
       <entry action="menu-exec-app" digits="2" param="transfer 1003 XML default"/>
     </menu>
