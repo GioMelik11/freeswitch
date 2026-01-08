@@ -1,16 +1,70 @@
 services:
   freeswitch:
-    image: wizhio/freeswitch
-    container_name: freeswitch_cont
-    environment:
-      TZ: "Asia/Tbilisi"
-      SOUND_RATES: "8000:16000"
-      SOUND_TYPES: "music:en-us-callie"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: freeswitch:latest
+    container_name: freeswitch
+    restart: unless-stopped
+    # Use host networking
     network_mode: "host"
-    restart: always
     volumes:
-      - ./freeswitch:/etc/freeswitch
+      - ./freeswitch:/usr/local/freeswitch/etc/freeswitch
       - ./freeswitch-sounds:/usr/share/freeswitch/sounds
-    # working_dir: /nodejs_listener
-    # command: sh -c "npm install -y && node --max-old-space-size=4096 asteriskListener.js"
-    
+    # Port mappings are ignored in host mode, so they are removed
+    environment:
+      - TZ=Asia/Tbilisi
+
+  fs-admin-backend:
+    image: node:20-bookworm-slim
+    container_name: fs-admin-backend
+    working_dir: /app
+    restart: unless-stopped
+    # Use host networking so ESL can reach FreeSWITCH (also in host mode) via 127.0.0.1
+    network_mode: "host"
+    environment:
+      - PORT=3001
+      - CORS_ORIGIN=http://localhost:4200
+      - DB_PATH=/data/admin.sqlite
+      - BACKUPS_DIR=/data/backups
+      # use the same path FreeSWITCH uses (mounted from repo-root ./freeswitch)
+      - FS_CONF_DIR=/usr/local/freeswitch/etc/freeswitch
+      # sounds directory inside container (mounted from repo-root ./freeswitch-sounds)
+      - FS_SOUND_DIR=/usr/share/freeswitch/sounds
+      - ESL_HOST=127.0.0.1
+      - ESL_PORT=8021
+      - ESL_PASSWORD=ClueCon
+      - ESL_TIMEOUT_MS=2500
+      - JWT_SECRET=change-me
+      - JWT_EXPIRES_IN=12h
+      - ADMIN_DEFAULT_USERNAME=admin
+      - ADMIN_DEFAULT_PASSWORD=admin1234
+    volumes:
+      - ./admin-panel/backend/dist:/app/dist:ro
+      - ./admin-panel/backend/package.json:/app/package.json:ro
+      - ./admin-panel/backend/package-lock.json:/app/package-lock.json:ro
+      - fs_admin_backend_node_modules:/app/node_modules
+      - ./freeswitch:/usr/local/freeswitch/etc/freeswitch
+      - ./freeswitch-sounds:/usr/share/freeswitch/sounds
+      - ./admin-panel/data:/data
+    command: >
+      sh -lc "
+        if [ ! -d node_modules ] || [ ! -f node_modules/.deps_installed ]; then
+          echo 'Installing backend dependencies (first run only)...';
+          npm ci --omit=dev && touch node_modules/.deps_installed;
+        fi;
+        node dist/main.js
+      "
+
+  fs-admin-frontend:
+    image: nginx:alpine
+    container_name: fs-admin-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./admin-panel/frontend/dist/frontend/browser:/usr/share/nginx/html:ro
+      - ./admin-panel/frontend/nginx.default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  fs_admin_backend_node_modules:

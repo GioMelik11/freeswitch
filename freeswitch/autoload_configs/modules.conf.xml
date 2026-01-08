@@ -13,10 +13,6 @@
     <load module="mod_hash"/>
     <load module="mod_db"/>
 
-    <!-- Audio modules -->
-    <load module="mod_audio_fork"/>
-    <load module="mod_audio_socket"/>
-
     <!-- Dialplan -->
     <load module="mod_dialplan_xml"/>
 
@@ -36,6 +32,9 @@
     <load module="mod_sndfile"/>
     <load module="mod_local_stream"/>
     <load module="mod_tone_stream"/>
+
+    <!-- Audio streaming (WebSocket) -->
+    <load module="mod_audio_stream"/>
 
     <!-- Languages -->
     <load module="mod_lua"/>

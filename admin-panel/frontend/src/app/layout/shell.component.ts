@@ -1,0 +1,141 @@
+import { Component, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
+import { AuthService } from '../core/auth.service';
+import { API_BASE_URL } from '../core/api';
+import { finalize } from 'rxjs/operators';
+import { timeout } from 'rxjs/operators';
+
+@Component({
+  standalone: true,
+  imports: [RouterModule],
+  template: `
+    <div class="min-h-screen">
+      <div class="border-b border-slate-800 bg-slate-950/40">
+        <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+          <div class="font-semibold">FreeSWITCH Admin</div>
+          <div class="flex items-center gap-3 text-sm text-slate-300">
+            @if (user()) {
+              <div class="hidden sm:block">
+                {{ user()!.username }} <span class="text-slate-500">({{ user()!.role }})</span>
+              </div>
+            }
+            <button
+              class="rounded-lg bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-60"
+              [disabled]="reloading()"
+              (click)="reloadFs()"
+              title="Runs reloadxml + sofia rescan"
+            >
+              {{ reloading() ? 'Reloading...' : 'Reload FreeSWITCH' }}
+            </button>
+            <button
+              class="rounded-lg border border-slate-800 px-3 py-1 hover:bg-slate-900"
+              (click)="logout()"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mx-auto max-w-6xl px-4 py-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+        <nav class="md:col-span-3">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/30 p-3">
+            <a
+              routerLink="/app/pbx/extensions"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Extensions</a
+            >
+            <a
+              routerLink="/app/pbx/queues"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Queues</a
+            >
+            <a
+              routerLink="/app/pbx/ivrs"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >IVR</a
+            >
+            <a
+              routerLink="/app/pbx/time-conditions"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Time Conditions</a
+            >
+            <a
+              routerLink="/app/sounds"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Sounds</a
+            >
+            <a
+              routerLink="/app/ai"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >AI</a
+            >
+            <a
+              routerLink="/app/pbx/trunks"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Trunks</a
+            >
+            <a
+              routerLink="/app/files"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Config Files</a
+            >
+          </div>
+        </nav>
+
+        <main class="md:col-span-9">
+          <router-outlet />
+        </main>
+      </div>
+    </div>
+  `,
+})
+export class ShellComponent {
+  user = computed(() => this.auth.user());
+  reloading = signal(false);
+
+  constructor(
+    private readonly auth: AuthService,
+    private readonly http: HttpClient,
+  ) { }
+
+  reloadFs() {
+    if (!confirm('Reload FreeSWITCH now? (reloadxml + sofia rescan)')) return;
+    this.reloading.set(true);
+    this.http
+      .post(`${API_BASE_URL}/pbx/freeswitch/reload`, {})
+      .pipe(
+        timeout(10000),
+        finalize(() => this.reloading.set(false)),
+      )
+      .subscribe({
+        next: (res: any) => {
+          const ok = Boolean(res?.ok);
+          if (!ok) {
+            alert('Reload finished with errors. Open devtools Network to inspect the response.');
+          } else {
+            alert('FreeSWITCH reload done.');
+          }
+        },
+        error: (err) => {
+          alert(err?.error?.message ?? err?.message ?? 'Failed to reload FreeSWITCH');
+        },
+      });
+  }
+
+  logout() {
+    this.auth.clear();
+    location.href = '/login';
+  }
+}
+
+

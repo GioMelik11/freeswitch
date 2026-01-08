@@ -1,0 +1,47 @@
+<configuration name="callcenter.conf" description="CallCenter">
+  <settings>
+    <param name="dbname" value="/dev/shm/callcenter.db"/>
+    <param name="cc-instance-id" value="single_box"/>
+  </settings>
+  <queues>
+    <queue name="queue1@default">
+      <param name="strategy" value="ring-all"/>
+      <param name="moh-sound" value="local_stream://moh"/>
+      <param name="time-base-score" value="system"/>
+      <param name="max-wait-time" value="0"/>
+      <param name="max-wait-time-with-no-agent" value="0"/>
+      <param name="max-wait-time-with-no-agent-time-reached" value="5"/>
+      <param name="tier-rules-apply" value="false"/>
+      <param name="tier-rule-wait-second" value="300"/>
+      <param name="tier-rule-wait-multiply-level" value="true"/>
+      <param name="tier-rule-no-agent-no-wait" value="false"/>
+      <param name="discard-abandoned-after" value="60"/>
+    </queue>
+    <queue name="queue2@default">
+      <param name="strategy" value="ring-all"/>
+      <param name="moh-sound" value="local_stream://moh"/>
+      <param name="time-base-score" value="system"/>
+      <param name="max-wait-time" value="0"/>
+      <param name="max-wait-time-with-no-agent" value="0"/>
+      <param name="max-wait-time-with-no-agent-time-reached" value="5"/>
+      <param name="tier-rules-apply" value="false"/>
+      <param name="tier-rule-wait-second" value="300"/>
+      <param name="tier-rule-wait-multiply-level" value="true"/>
+      <param name="tier-rule-no-agent-no-wait" value="false"/>
+      <param name="discard-abandoned-after" value="60"/>
+    </queue>
+  </queues>
+
+  <agents>
+    <agent name="1001@default" type="callback" contact="user/1001@$${domain}" status="Available" max-no-answer="10" wrap-up-time="10" reject-delay-time="0" busy-delay-time="0" no-answer-delay-time="0" last-offered-call="0" no-answer-count="0" calls-waiting="0" talk-time="0" ready-time="0"/>
+    <agent name="1003@default" type="callback" contact="user/1003@$${domain}" status="Available" max-no-answer="10" wrap-up-time="10" reject-delay-time="0" busy-delay-time="0" no-answer-delay-time="0" last-offered-call="0" no-answer-count="0" calls-waiting="0" talk-time="0" ready-time="0"/>
+    <agent name="1002@default" type="callback" contact="user/1002@${{domain}" status="Available" max-no-answer="10" wrap-up-time="10" reject-delay-time="0" busy-delay-time="0" no-answer-delay-time="0" last-offered-call="0" no-answer-count="0" calls-waiting="0" talk-time="0" ready-time="0"/>
+  </agents>
+
+  <tiers>
+    <tier agent="1003@default" queue="queue2@default" level="1" position="1"/>
+    <tier agent="1001@default" queue="queue1@default" level="1" position="1"/>
+    <tier agent="1002@default" queue="queue1@default" level="1" position="2"/>
+    <tier agent="1003@default" queue="queue1@default" level="1" position="3"/>
+  </tiers>
+</configuration>

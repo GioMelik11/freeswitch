@@ -1,0 +1,54 @@
+<configuration name="modules.conf" description="Modules">
+  <modules>
+    <!-- Loggers -->
+    <load module="mod_console"/>
+    <load module="mod_logfile"/>
+
+    <!-- Core modules -->
+    <load module="mod_sofia"/>
+    <load module="mod_loopback"/>
+    <load module="mod_commands"/>
+    <load module="mod_dptools"/>
+    <load module="mod_expr"/>
+    <load module="mod_hash"/>
+    <load module="mod_db"/>
+
+    <!-- Audio modules -->
+    <!-- mod_audio_fork and mod_audio_socket are not available in FreeSWITCH v1.10.10 -->
+    <!-- Use mod_audio_stream as alternative (requires separate installation) -->
+    <!-- <load module="mod_audio_fork"/> -->
+    <!-- <load module="mod_audio_socket"/> -->
+
+    <!-- Dialplan -->
+    <load module="mod_dialplan_xml"/>
+
+    <!-- Applications -->
+    <load module="mod_conference"/>
+    <!-- <load module="mod_voicemail"/> -->
+    <load module="mod_fifo"/>
+    <load module="mod_callcenter"/>
+
+    <!-- Codecs -->
+    <load module="mod_spandsp"/>
+    <load module="mod_g729"/>
+    <load module="mod_opus"/>
+
+    <!-- File formats -->
+    <load module="mod_av"/>
+    <load module="mod_sndfile"/>
+    <load module="mod_local_stream"/>
+    <load module="mod_tone_stream"/>
+
+    <!-- Audio streaming (WebSocket) -->
+    <load module="mod_audio_stream"/>
+
+    <!-- Languages -->
+    <load module="mod_lua"/>
+    <load module="mod_say_en"/>
+
+    <!-- Event handling -->
+    <load module="mod_cdr_csv"/>
+    <load module="mod_event_socket"/>
+
+  </modules>
+</configuration>

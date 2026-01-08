@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  freeswitch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: freeswitch:latest
+    container_name: freeswitch
+    restart: unless-stopped
+    # Use host networking
+    network_mode: "host"
+    volumes:
+      - ./freeswitch:/usr/local/freeswitch/etc/freeswitch
+      - ./freeswitch-sounds:/usr/share/freeswitch/sounds
+    # Port mappings are ignored in host mode, so they are removed
+    environment:
+      - TZ=Asia/Tbilisi

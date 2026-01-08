@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "queues": {},
+  "trunks": {},
+  "aiServices": [
+    {
+      "id": "14e80c1d-c767-4393-8979-f0ce14b28c7b",
+      "name": "AI-1",
+      "socketUrl": "ws://127.0.0.1:9400",
+      "enabled": true
+    }
+  ],
+  "defaultAiServiceId": "14e80c1d-c767-4393-8979-f0ce14b28c7b"
+}

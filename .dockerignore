@@ -1,0 +1,9 @@
+freeswitch_conf/
+freeswitch_logs/
+freeswitch_recordings/
+freeswitch_storage/
+.git/
+.gitignore
+README.md
+*.md
+

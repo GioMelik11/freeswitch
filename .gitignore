@@ -1,2 +1,5 @@
 *.tar
 wizhio-freeswitch.tar
+
+# Node modules
+node_modules/

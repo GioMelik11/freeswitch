@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Clean Dialplan Configuration
+    Supports:
+    - Local extensions (1000-1099)
+    - Outbound calls (9 + number)
+    - Inbound calls from trunks
+    - IVR access (5000)
+    - Queue access (2000-2009)
+    - Voicemail access (*98)
+-->
+<include>
+  <context name="default">
+
+    <!-- Loop prevention -->
+    <extension name="unloop">
+      <condition field="${unroll_loops}" expression="^true$"/>
+      <condition field="${sip_looped_call}" expression="^true$">
+        <action application="deflect" data="${destination_number}"/>
+      </condition>
+    </extension>
+
+        <!-- Admin Panel includes (generated dialplan, time conditions, etc.) -->
+    <X-PRE-PROCESS cmd="include" data="default/*.xml"/>
+
+<!-- Global settings -->
+    <extension name="global" continue="true">
+      <condition field="${call_debug}" expression="^true$" break="never">
+        <action application="info"/>
+      </condition>
+
+      <condition>
+        <action application="hash" data="insert/${domain_name}-last_dial/${caller_id_number}/${destination_number}"/>
+        <action application="export" data="RFC2822_DATE=${strftime(%a, %d %b %Y %T %z)}"/>
+      </condition>
+    </extension>
+<!-- Local Extensions (1000-1099) -->
+    <extension name="Local_Extension">
+      <condition field="destination_number" expression="^(10[0-9][0-9])$">
+        <action application="export" data="dialed_extension=$1"/>
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="hash" data="insert/${domain_name}-call_return/${dialed_extension}/${caller_id_number}"/>
+        <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="hangup" data="NO_ANSWER"/>
+      </condition>
+    </extension>
+
+    <!-- Active Extensions (1001, 1003) - Fixed media bridging -->
+    <extension name="Active_Extensions">
+      <condition field="destination_number" expression="^(100[13])$">
+        <action application="set" data="dialed_extension=$1"/>
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="set" data="bypass_media=false"/>
+        <action application="set" data="proxy_media=false"/>
+        <action application="set" data="media_mix_inbound_outbound_codecs=false"/>
+        <action application="set" data="rtp_secure_media=false"/>
+        <action application="bridge" data="user/${dialed_extension}@${domain_name}"/>
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="hangup" data="NO_ANSWER"/>
+      </condition>
+    </extension>
+
+    <!-- Inactive Extensions (1000, 1002, 1004, 1005) - Loopback fallback -->
+    <extension name="Inactive_Extensions">
+      <condition field="destination_number" expression="^(100[0245])$">
+        <action application="set" data="dialed_extension=$1"/>
+        <action application="set" data="ringback=${us-ring}"/>
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="loopback/$1/default"/>
+      </condition>
+    </extension>
+
+    <!-- Simple Extension Bridge - Alternative routing method -->
+    <extension name="Simple_Extension_Bridge">
+      <condition field="destination_number" expression="^(100[0-5])$">
+        <action application="set" data="call_timeout=30"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="bridge" data="user/$1@${domain_name}"/>
+      </condition>
+    </extension>
+
+    <!-- TEST: AudioSocket to backend (no trunk needed) -->
+    <!-- Use 7000 to avoid matching Outbound_Calls (9 prefix) -->
+    <extension name="AudioSocket_Test">
+      <condition field="destination_number" expression="^7000$">
+        <action application="answer"/>
+        <action application="sleep" data="500"/>
+        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
+        <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua $${audio_stream_url} mono 16k"/>
+        <action application="sleep" data="3600000"/>
+        <action application="hangup"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound Calls (9 + number) - Enhanced for SIP trunk -->
+    <extension name="Outbound_Calls">
+      <condition field="destination_number" expression="^9(.*)$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="set" data="ringback=${adminpanel_outgoing_sound:-${adminpanel_trunk_outgoing_sound:-${us-ring}}}"/>
+        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
+      </condition>
+    </extension>
+
+    <!-- Direct Outbound Calls (without 9 prefix) -->
+    <extension name="Direct_Outbound_Calls">
+      <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
+        <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+        <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+        <action application="set" data="ringback=${adminpanel_outgoing_sound:-${adminpanel_trunk_outgoing_sound:-${us-ring}}}"/>
+        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>
+        <action application="set" data="call_timeout=60"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="bridge" data="sofia/gateway/sip_trunk_provider/$1"/>
+      </condition>
+    </extension>
+
+    <!-- IVR Access -->
+    <extension name="IVR_Main">
+      <condition field="destination_number" expression="^5000$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="ivr" data="main_ivr"/>
+      </condition>
+    </extension>
+
+    <!-- Queue Access -->
+    <extension name="Queue_1">
+      <condition field="destination_number" expression="^2000$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue1@default"/>
+      </condition>
+    </extension>
+
+    <extension name="Queue_2">
+      <condition field="destination_number" expression="^2001$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue2@default"/>
+      </condition>
+    </extension>
+
+    <!-- Specific Queue Numbers -->
+    <extension name="Queue_251144">
+      <condition field="destination_number" expression="^251144$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue1@default"/>
+      </condition>
+    </extension>
+
+    <extension name="Queue_255431">
+      <condition field="destination_number" expression="^255431$">
+        <action application="answer"/>
+        <action application="callcenter" data="queue2@default"/>
+      </condition>
+    </extension>
+
+    <!-- Voicemail Access - DISABLED -->
+    <!--
+    <extension name="Voicemail_Main">
+      <condition field="destination_number" expression="^\*98$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="voicemail" data="check default ${domain_name}"/>
+      </condition>
+    </extension>
+    -->
+
+    <!-- Operator -->
+    <extension name="Operator">
+      <condition field="destination_number" expression="^(operator|0)$">
+        <action application="set" data="transfer_ringback=$${hold_music}"/>
+        <action application="transfer" data="1000 XML features"/>
+      </condition>
+    </extension>
+
+    <!-- Conference Rooms (3000-3099) -->
+    <extension name="Conference_Rooms">
+      <condition field="destination_number" expression="^(30[0-9][0-9])$">
+        <action application="answer"/>
+        <action application="conference" data="$1-${domain_name}@default"/>
+      </condition>
+    </extension>
+
+    <!-- Loopback Extension Handler for Inactive Extensions -->
+    <extension name="Loopback_Extension_Handler">
+      <condition field="destination_number" expression="^(100[0245])$">
+        <action application="answer"/>
+        <action application="sleep" data="1000"/>
+        <action application="playback" data="ivr/ivr-welcome_to_freeswitch.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="playback" data="ivr/ivr-you_are_now_connected.wav"/>
+        <action application="sleep" data="2000"/>
+        <action application="hangup" data="NORMAL_CLEARING"/>
+      </condition>
+    </extension>
+
+    <extension name="Hold_Music">
+      <condition field="destination_number" expression="^9664$">
+        <action application="answer"/>
+        <action application="playback" data="$${hold_music}"/>
+      </condition>
+    </extension>
+
+  </context>
+</include>
