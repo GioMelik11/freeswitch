@@ -41,7 +41,10 @@ else
     url = base or "ws://127.0.0.1:9096"
 end
 
-local mix = "mono"
+-- Use "mixed" so the stream includes the caller's microphone audio (read) as well as any audio
+-- FreeSWITCH plays to the caller (write). This is important for /echo tests: if we stream only
+-- the write direction, there may be nothing to echo back.
+local mix = "mixed"
 local rate = "16k"
 local meta = "{\"mode\":\"test\"}"
 

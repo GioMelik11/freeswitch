@@ -98,8 +98,28 @@ wss.on("connection", (ws, req) => {
   log(`🧪 connected from=${req.socket.remoteAddress} path=${url} mode=${mode}`);
 
   if (mode === "echo") {
+    let binCount = 0;
+    let textCount = 0;
+    const startedAt = Date.now();
+
+    const statsIv = setInterval(() => {
+      const secs = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      log(`🧪 /echo stats: bin=${binCount} text=${textCount} (~${Math.round(binCount / secs)}/s)`);
+    }, 5000);
+
+    ws.on("close", () => clearInterval(statsIv));
+    ws.on("error", () => clearInterval(statsIv));
+
     ws.on("message", (data, isBinary) => {
-      if (!isBinary) return;
+      if (!isBinary) {
+        textCount++;
+        return;
+      }
+      binCount++;
+      if (binCount <= 5) {
+        const len = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data);
+        log(`🧪 /echo first frames: #${binCount} bytes=${len}`);
+      }
       if (ws.readyState !== ws.OPEN) return;
       ws.send(Buffer.isBuffer(data) ? data : Buffer.from(data));
     });
