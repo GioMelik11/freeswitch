@@ -1,0 +1,15 @@
+<include>
+  <!-- Quick test: dial 9999 from an extension and you should hear ivr/incoming.wav streamed via mod_audio_stream -->
+  <extension name="adminpanel_audio_stream_test_9999">
+    <condition field="destination_number" expression="^9999$">
+      <action application="answer"/>
+      <action application="sleep" data="300"/>
+      <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
+      <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream_test.lua ws://127.0.0.1:9096"/>
+      <action application="sleep" data="10000"/>
+      <action application="hangup"/>
+    </condition>
+  </extension>
+</include>
+
+

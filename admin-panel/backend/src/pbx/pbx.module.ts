@@ -27,6 +27,7 @@ import { NatService } from './nat/nat.service';
 import { SettingsController } from './settings/settings.controller';
 import { SettingsService } from './settings/settings.service';
 import { PbxBootstrapService } from './pbx-bootstrap.service';
+import { AudioStreamTestService } from './audio-stream-test/audio-stream-test.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -58,6 +59,7 @@ import { PbxBootstrapService } from './pbx-bootstrap.service';
     NatService,
     SettingsService,
     PbxBootstrapService,
+    AudioStreamTestService,
   ],
 })
 export class PbxModule { }
