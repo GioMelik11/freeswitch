@@ -20,8 +20,7 @@
     <load module="mod_conference"/>
     <!-- <load module="mod_voicemail"/> -->
     <load module="mod_fifo"/>
-    <!-- mod_callcenter is not present in freeswitch:latest image we are using -->
-    <!-- <load module="mod_callcenter"/> -->
+    <load module="mod_callcenter"/>
 
     <!-- Codecs -->
     <load module="mod_spandsp"/>

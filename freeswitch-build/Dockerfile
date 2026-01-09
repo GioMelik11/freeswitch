@@ -22,6 +22,8 @@ RUN git fetch && git checkout v1.10.10
 # Ensure mod_audio_fork and other audio modules are enabled
 RUN if [ -f modules.conf.in ]; then \
     sed -i '/signalwire/s/^/#/' modules.conf.in; \
+    # Ensure mod_callcenter is enabled (needed for call queues)
+    sed -i 's|^#applications/mod_callcenter|applications/mod_callcenter|' modules.conf.in 2>/dev/null || true; \
     # Uncomment mod_audio_fork if it exists and is commented
     sed -i '/^#.*mod_audio_fork/s/^#//' modules.conf.in 2>/dev/null || true; \
     # Add mod_audio_fork if it doesn't exist (add after mod_audio_socket or in audio section)
@@ -59,6 +61,17 @@ RUN ./bootstrap.sh && \
     --enable-zrtp \
     --enable-core-pgsql-support \
     --with-libvpx=/usr
+
+# Ensure mod_callcenter stays enabled (configure/bootstrap can regenerate modules.conf)
+RUN if [ -f modules.conf ]; then \
+    sed -i 's|^#applications/mod_callcenter|applications/mod_callcenter|' modules.conf 2>/dev/null || true; \
+    echo "modules.conf callcenter line:"; \
+    grep -n 'mod_callcenter' modules.conf || true; \
+    if grep -q '^#applications/mod_callcenter' modules.conf; then \
+    echo "ERROR: mod_callcenter is still commented in modules.conf"; \
+    exit 1; \
+    fi; \
+    fi
 
 # Build FreeSWITCH (this will take a while)
 # Skip bundled libvpx build and link against system libvpx
