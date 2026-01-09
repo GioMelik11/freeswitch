@@ -132,17 +132,6 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                         continue;
                     }
 
-                    // Fallback: mod_audio_stream "play" injection over WS (base64 JSON)
-                    const audioBuf = audioDataType === 'wav' ? pcmToWav(out, sampleRate) : out;
-                    const msg = {
-                        type: 'streamAudio',
-                        data: {
-                            audioDataType: audioDataType === 'wav' ? 'wav' : 'raw',
-                            sampleRate,
-                            audioData: audioBuf.toString('base64'),
-                        },
-                    };
-                    ws.send(JSON.stringify(msg));
                 }
             });
         });
