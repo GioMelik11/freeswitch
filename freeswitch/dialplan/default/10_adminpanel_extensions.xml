@@ -6,7 +6,7 @@
         <action application="sleep" data="500"/>
         <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
         <action application="set" data="audio_stream_url=ws://127.0.0.1:9094"/>
-        <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua ${{audio_stream_url} mono 16k"/>
+        <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua ${audio_stream_url} mono 16k"/>
         <action application="sleep" data="3600000"/>
         <action application="hangup"/>
       </condition>

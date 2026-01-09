@@ -69,9 +69,4 @@
   <X-PRE-PROCESS cmd="set" data="sounds_dir=/usr/share/freeswitch/sounds"/>
   <X-PRE-PROCESS cmd="set" data="sound_prefix=/usr/share/freeswitch/sounds"/>
 
-  <!-- mod_audio_stream WebSocket endpoint -->
-  <!-- NOTE: FreeSWITCH runs in host-network mode; Docker port publishing may not proxy WS correctly in some setups.
-       Using the backend container IP is the most reliable. Update if whizio-backend IP changes. -->
-  <X-PRE-PROCESS cmd="set" data="audio_stream_url=ws://172.23.0.3:9094"/>
-
 </include>

@@ -15,15 +15,18 @@ const files_service_1 = require("../../files/files.service");
 const xml_1 = require("../xml");
 const dialplan_service_1 = require("../dialplan/dialplan.service");
 const pbx_meta_service_1 = require("../meta/pbx-meta.service");
+const esl_service_1 = require("../../freeswitch/esl/esl.service");
 const EXT_DIR = 'directory/default';
 let ExtensionsService = class ExtensionsService {
     files;
     dialplan;
     meta;
-    constructor(files, dialplan, meta) {
+    esl;
+    constructor(files, dialplan, meta, esl) {
         this.files = files;
         this.dialplan = dialplan;
         this.meta = meta;
+        this.esl = esl;
     }
     list() {
         const files = this.files.listFiles(EXT_DIR, {
@@ -130,6 +133,7 @@ let ExtensionsService = class ExtensionsService {
         }
         catch {
         }
+        void this.reloadFsBestEffort();
         return res;
     }
     delete(id, etag) {
@@ -159,7 +163,22 @@ let ExtensionsService = class ExtensionsService {
         }
         catch {
         }
+        void this.reloadFsBestEffort();
         return res;
+    }
+    async reloadFsBestEffort() {
+        const cmds = [
+            'reloadxml',
+            'sofia profile internal rescan reloadxml',
+            'sofia profile external rescan reloadxml',
+        ];
+        for (const c of cmds) {
+            try {
+                await this.esl.api(c);
+            }
+            catch {
+            }
+        }
     }
     render(e) {
         const callgroupLine = e.callgroup
@@ -209,7 +228,8 @@ exports.ExtensionsService = ExtensionsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [files_service_1.FilesService,
         dialplan_service_1.DialplanService,
-        pbx_meta_service_1.PbxMetaService])
+        pbx_meta_service_1.PbxMetaService,
+        esl_service_1.EslService])
 ], ExtensionsService);
 function escapeXml(s) {
     return String(s)

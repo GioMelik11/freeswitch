@@ -192,25 +192,24 @@ let DialplanService = class DialplanService {
         const rel = 'dialplan/default/10_adminpanel_extensions.xml';
         const extXml = [];
         const aiScript = '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
+        const fsAudioVar = '${audio_stream_url}';
         for (const e of exts) {
             const id = String(e.id ?? '').trim();
             if (!/^\d+$/.test(id))
                 continue;
             if (e.aiEnabled) {
                 const sid = String(e.aiServiceId ?? '').trim();
-                const url = sid
-                    ? (ai?.services?.get(sid) ?? '')
-                    : (ai?.defaultUrl ?? '');
-                const setUrlLine = url
-                    ? `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`
-                    : '';
+                // IMPORTANT: every AI-enabled extension must always have an explicit service URL.
+                // If specific service is missing/disabled, fall back to defaultUrl.
+                const url = (sid ? (ai?.services?.get(sid) ?? '') : '') || (ai?.defaultUrl ?? '');
+                const setUrlLine = `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`;
                 extXml.push(`    <extension name="adminpanel_ai_${esc(id)}">\n` +
                     `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
                     `        <action application="answer"/>\n` +
                     `        <action application="sleep" data="500"/>\n` +
                     `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
                     setUrlLine +
-                    `        <action application="lua" data="${aiScript} $${'{'}{audio_stream_url} mono 16k"/>\n` +
+                    `        <action application="lua" data="${aiScript} ${fsAudioVar} mono 16k"/>\n` +
                     `        <action application="sleep" data="3600000"/>\n` +
                     `        <action application="hangup"/>\n` +
                     `      </condition>\n` +

@@ -2,11 +2,13 @@ import { FilesService } from '../../files/files.service';
 import { Extension } from './extensions.types';
 import { DialplanService } from '../dialplan/dialplan.service';
 import { PbxMetaService } from '../meta/pbx-meta.service';
+import { EslService } from '../../freeswitch/esl/esl.service';
 export declare class ExtensionsService {
     private readonly files;
     private readonly dialplan;
     private readonly meta;
-    constructor(files: FilesService, dialplan: DialplanService, meta: PbxMetaService);
+    private readonly esl;
+    constructor(files: FilesService, dialplan: DialplanService, meta: PbxMetaService, esl: EslService);
     list(): Extension[];
     get(id: string): Extension;
     private getByPath;
@@ -30,5 +32,6 @@ export declare class ExtensionsService {
     delete(id: string, etag?: string): {
         ok: boolean;
     };
+    private reloadFsBestEffort;
     private render;
 }

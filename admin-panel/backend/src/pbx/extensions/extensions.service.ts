@@ -4,6 +4,7 @@ import { asArray, xmlParser } from '../xml';
 import { Extension } from './extensions.types';
 import { DialplanService } from '../dialplan/dialplan.service';
 import { PbxMetaService } from '../meta/pbx-meta.service';
+import { EslService } from '../../freeswitch/esl/esl.service';
 
 const EXT_DIR = 'directory/default';
 
@@ -13,6 +14,7 @@ export class ExtensionsService {
     private readonly files: FilesService,
     private readonly dialplan: DialplanService,
     private readonly meta: PbxMetaService,
+    private readonly esl: EslService,
   ) {}
 
   list(): Extension[] {
@@ -154,6 +156,9 @@ export class ExtensionsService {
       // best-effort; do not fail the save if dialplan regeneration fails
     }
 
+    // Apply changes immediately (no manual reload needed)
+    void this.reloadFsBestEffort();
+
     return res;
   }
 
@@ -183,7 +188,24 @@ export class ExtensionsService {
     } catch {
       // ignore
     }
+
+    void this.reloadFsBestEffort();
     return res;
+  }
+
+  private async reloadFsBestEffort() {
+    const cmds = [
+      'reloadxml',
+      'sofia profile internal rescan reloadxml',
+      'sofia profile external rescan reloadxml',
+    ];
+    for (const c of cmds) {
+      try {
+        await this.esl.api(c);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private render(e: {

@@ -3,20 +3,22 @@ import { AiService } from './ai.service';
 import { UpdateAiSettingsDto } from './dto/update-ai-settings.dto';
 import { DialplanService } from '../dialplan/dialplan.service';
 import { PbxMetaService } from '../meta/pbx-meta.service';
+import { EslService } from '../../freeswitch/esl/esl.service';
 export declare class AiController {
     private readonly ai;
     private readonly extensions;
     private readonly dialplan;
     private readonly meta;
-    constructor(ai: AiService, extensions: ExtensionsService, dialplan: DialplanService, meta: PbxMetaService);
+    private readonly esl;
+    constructor(ai: AiService, extensions: ExtensionsService, dialplan: DialplanService, meta: PbxMetaService, esl: EslService);
     settings(): {
         etag: string;
         audioStreamUrl: string;
     };
-    update(dto: UpdateAiSettingsDto): {
+    update(dto: UpdateAiSettingsDto): Promise<{
         ok: boolean;
         etag: string;
-    };
+    }>;
     listAiExtensions(): {
         id: any;
         callerIdName: any;
@@ -51,4 +53,5 @@ export declare class AiController {
         etag: string;
     };
     private regenExtensionsDialplan;
+    private reloadFsBestEffort;
 }
