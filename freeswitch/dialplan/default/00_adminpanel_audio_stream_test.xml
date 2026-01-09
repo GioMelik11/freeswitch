@@ -1,18 +1,16 @@
 <include>
-  <!-- WS voice-echo test via mod_audio_stream + admin-panel backend
+  <!-- WS voice-echo test via mod_audio_stream
        Dial 9998:
        - FreeSWITCH answers
-       - (optional) plays a short beep to confirm answer
        - starts uuid_audio_stream to ws://127.0.0.1:9096/echo (mono = caller audio)
-       - stays up so you can talk; the WS server returns your audio which is played back (echo)
+       - parks the call so you can speak and hear the echo back
   -->
-  <extension name="ws_voice_echo_test_9998">
-    <condition field="destination_number" expression="^9998$">
-      <action application="answer"/>
-      <action application="uuid_audio_stream" data="start ws://127.0.0.1:9096/echo mono 8000"/>
-      <!-- mono/mixed/stereo, sample rate 8000/16000 -->
-      <action application="park"/>
-      <!-- Keeps call open -->
+  <extension name='ws_voice_echo_test_9998'>
+    <condition field='destination_number' expression='^9998$'>
+      <action application='answer'/>
+      <!-- uuid_audio_stream is an API (mod_audio_stream), so invoke it via the api dialplan app -->
+      <action application='api' data='uuid_audio_stream ${uuid} start ws://127.0.0.1:9096/echo mono 8000'/>
+      <action application='park'/>
     </condition>
   </extension>
 
