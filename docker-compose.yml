@@ -41,6 +41,9 @@ services:
       - JWT_EXPIRES_IN=12h
       - ADMIN_DEFAULT_USERNAME=admin
       - ADMIN_DEFAULT_PASSWORD=admin1234
+      # Enable sptmru/mod_audio_stream compatible WS echo server
+      - AUDIO_STREAM_WS_ECHO_ENABLED=true
+      - AUDIO_STREAM_WS_ECHO_PORT=9096
     volumes:
       - ./admin-panel/backend/dist:/app/dist:ro
       - ./admin-panel/backend/package.json:/app/package.json:ro

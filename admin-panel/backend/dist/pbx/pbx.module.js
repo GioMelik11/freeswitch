@@ -36,6 +36,7 @@ const nat_service_1 = require("./nat/nat.service");
 const settings_controller_1 = require("./settings/settings.controller");
 const settings_service_1 = require("./settings/settings.service");
 const pbx_bootstrap_service_1 = require("./pbx-bootstrap.service");
+const audio_stream_ws_echo_service_1 = require("./audio-stream-ws-echo/audio-stream-ws-echo.service");
 let PbxModule = class PbxModule {
 };
 exports.PbxModule = PbxModule;
@@ -70,6 +71,7 @@ exports.PbxModule = PbxModule = __decorate([
             nat_service_1.NatService,
             settings_service_1.SettingsService,
             pbx_bootstrap_service_1.PbxBootstrapService,
+            audio_stream_ws_echo_service_1.AudioStreamWsEchoService,
         ],
     })
 ], PbxModule);
