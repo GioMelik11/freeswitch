@@ -11,6 +11,8 @@
       <action application='set' data='STREAM_SUPPRESS_LOG=false'/>
       <!-- 100ms chunks match the WS chunker; adjust if needed -->
       <action application='set' data='STREAM_BUFFER_SIZE=100'/>
+      <!-- Ensure the WS stream is stopped immediately when the caller hangs up -->
+      <action application='set' data='api_hangup_hook=uuid_audio_stream ${uuid} stop'/>
       <action application='answer'/>
       <action application='playback' data='tone_stream://%(250,0,1000,1000)'/>
       <!-- mod_audio_stream exposes uuid_audio_stream as an API (not a dialplan app in this build).
