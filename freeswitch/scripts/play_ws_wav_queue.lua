@@ -58,4 +58,26 @@ while session:ready() do
     end
 end
 
+-- Explicitly stop mod_audio_stream on exit. In some builds it can linger briefly after hangup.
+local function stop_audio_stream()
+    local uuid = session:get_uuid()
+    if uuid and uuid ~= "" then
+        local api = freeswitch.API()
+        api:executeString("uuid_audio_stream " .. uuid .. " stop")
+    end
+end
+
+stop_audio_stream()
+
+-- Call ended: best-effort cleanup of any remaining chunks and the directory.
+-- (This covers cases where the call ends before all queued chunks were played.)
+local function cleanup_dir(d)
+    -- delete any leftover chunk wavs
+    os.execute("rm -f " .. d .. "/*.wav 2>/dev/null")
+    -- remove dir if empty
+    os.execute("rmdir " .. d .. " 2>/dev/null")
+end
+
+cleanup_dir(dir)
+
 

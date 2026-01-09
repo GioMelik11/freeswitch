@@ -64,6 +64,25 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 // eslint-disable-next-line no-console
                 console.log(`[ws-echo] file-queue enabled dir=${callOutDir}`);
             }
+            const cleanupDelayMs = Math.max(0, Number(process.env.AUDIO_STREAM_WS_ECHO_FILE_QUEUE_CLEANUP_DELAY_MS ?? 15000));
+
+            const cleanupQueueDir = () => {
+                if (!fileQueueEnabled) return;
+                // Delay cleanup to avoid deleting chunks while FS is still draining/playing.
+                setTimeout(() => {
+                    try {
+                        // Node >=14: rmSync is available. If not, fall back.
+                        (fs as any).rmSync
+                            ? (fs as any).rmSync(callOutDir, { recursive: true, force: true })
+                            : fs.rmdirSync(callOutDir, { recursive: true } as any);
+                        // eslint-disable-next-line no-console
+                        console.log(`[ws-echo] cleaned queue dir=${callOutDir}`);
+                    } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.error('[ws-echo] failed to cleanup queue dir', e);
+                    }
+                }, cleanupDelayMs);
+            };
             let outSeq = 0;
             // PCM accumulator (avoid Buffer.concat in hot loop)
             const pcmBufs: Buffer[] = [];
@@ -167,6 +186,9 @@ export class AudioStreamWsEchoService implements OnModuleInit {
 
                 }
             });
+
+            ws.on('close', cleanupQueueDir);
+            ws.on('error', cleanupQueueDir);
         });
 
     }
