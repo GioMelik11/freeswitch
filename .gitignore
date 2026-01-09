@@ -3,3 +3,4 @@ wizhio-freeswitch.tar
 
 # Node modules
 node_modules/
+admin-panel/data/backups

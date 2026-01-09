@@ -199,8 +199,6 @@ let DialplanService = class DialplanService {
                 continue;
             if (e.aiEnabled) {
                 const sid = String(e.aiServiceId ?? '').trim();
-                // IMPORTANT: every AI-enabled extension must always have an explicit service URL.
-                // If specific service is missing/disabled, fall back to defaultUrl.
                 const url = (sid ? (ai?.services?.get(sid) ?? '') : '') || (ai?.defaultUrl ?? '');
                 const setUrlLine = `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`;
                 extXml.push(`    <extension name="adminpanel_ai_${esc(id)}">\n` +

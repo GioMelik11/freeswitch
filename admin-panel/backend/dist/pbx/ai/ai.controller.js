@@ -21,6 +21,7 @@ const update_ai_settings_dto_1 = require("./dto/update-ai-settings.dto");
 const dialplan_service_1 = require("../dialplan/dialplan.service");
 const pbx_meta_service_1 = require("../meta/pbx-meta.service");
 const esl_service_1 = require("../../freeswitch/esl/esl.service");
+const common_2 = require("@nestjs/common");
 let AiController = class AiController {
     ai;
     extensions;
@@ -47,16 +48,15 @@ let AiController = class AiController {
         return list
             .filter((e) => Boolean(e.aiEnabled))
             .map((e) => ({
-                id: e.id,
-                callerIdName: e.callerIdName,
-                aiServiceId: e.aiServiceId ?? null,
-            }));
+            id: e.id,
+            callerIdName: e.callerIdName,
+            aiServiceId: e.aiServiceId ?? null,
+        }));
     }
     listServices() {
         return this.ai.listServices();
     }
     upsertService(body) {
-        // Enforce: if ANY extension has AI enabled, there must remain at least one enabled AI service with a URL.
         const aiExtCount = this.extensions
             .list()
             .filter((e) => Boolean(e.aiEnabled)).length;
@@ -68,9 +68,9 @@ let AiController = class AiController {
             const socketUrl = String(body.socketUrl ?? body.audioStreamUrl ?? '').trim();
             const enabled = body.enabled !== false;
             if (!name)
-                throw new common_1.BadRequestException('name is required');
+                throw new common_2.BadRequestException('name is required');
             if (!socketUrl)
-                throw new common_1.BadRequestException('audio_stream_url is required');
+                throw new common_2.BadRequestException('audio_stream_url is required');
             const idx = incomingId
                 ? list.findIndex((s) => String(s?.id) === incomingId)
                 : -1;
@@ -82,7 +82,7 @@ let AiController = class AiController {
                 list.push(next);
             const enabledCount = list.filter((s) => s && s.enabled !== false && s.socketUrl).length;
             if (enabledCount === 0) {
-                throw new common_1.BadRequestException('You have AI-enabled extensions. At least one AI service must remain enabled with a valid WS URL.');
+                throw new common_2.BadRequestException('You have AI-enabled extensions. At least one AI service must remain enabled with a valid WS URL.');
             }
         }
         const res = this.ai.upsertService(body);
@@ -99,7 +99,7 @@ let AiController = class AiController {
             const list = (cur.aiServices ?? []).filter((s) => String(s?.id) !== String(id));
             const enabledCount = list.filter((s) => s && s.enabled !== false && s.socketUrl).length;
             if (enabledCount === 0) {
-                throw new common_1.BadRequestException('You have AI-enabled extensions. You cannot delete the last enabled AI service.');
+                throw new common_2.BadRequestException('You have AI-enabled extensions. You cannot delete the last enabled AI service.');
             }
         }
         const res = this.ai.deleteService(id);
@@ -200,9 +200,9 @@ exports.AiController = AiController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('pbx/ai'),
     __metadata("design:paramtypes", [ai_service_1.AiService,
-    extensions_service_1.ExtensionsService,
-    dialplan_service_1.DialplanService,
-    pbx_meta_service_1.PbxMetaService,
-    esl_service_1.EslService])
+        extensions_service_1.ExtensionsService,
+        dialplan_service_1.DialplanService,
+        pbx_meta_service_1.PbxMetaService,
+        esl_service_1.EslService])
 ], AiController);
 //# sourceMappingURL=ai.controller.js.map
