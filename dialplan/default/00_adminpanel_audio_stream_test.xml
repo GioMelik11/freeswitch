@@ -2,44 +2,6 @@
   <!-- WS voice-echo test via mod_audio_stream + admin-panel backend
        Dial 9998:
        - FreeSWITCH answers
-       - short beep (confirmation)
-       - starts uuid_audio_stream to ws://127.0.0.1:9096/echo (mono = caller audio)
-       - keeps the call open so you can speak and hear the echo back
-  -->
-  <extension name="ws_voice_echo_test_9998">
-    <condition field="destination_number" expression="^9998$">
-      <!-- Disable per-message deflate (variable name is inverted in mod_audio_stream docs) -->
-      <action application="set" data="STREAM_MESSAGE_DEFLATE=true"/>
-      <action application="set" data="STREAM_SUPPRESS_LOG=false"/>
-      <action application="set" data="STREAM_BUFFER_SIZE=20"/>
-
-      <action application="answer"/>
-
-      <!-- Short beep before streaming starts (so the beep itself is not echoed back) -->
-      <action application="playback" data="tone_stream://%(250,0,1000,1000)"/>
-
-      <!-- Start streaming after answer. mono = caller mic only -->
-      <action application="api" data="uuid_audio_stream ${uuid} start ws://127.0.0.1:9096/echo mono 8000"/>
-
-      <!-- Keep the call open for 10 minutes -->
-      <action application="sleep" data="600000"/>
-
-      <action application="hangup"/>
-    </condition>
-  </extension>
-
-  <!-- Local WAV test (no sockets/WS): dial 9996 and you should hear ivr/incoming.wav played by FreeSWITCH -->
-  <extension name="local_wav_test_9996">
-    <condition field="destination_number" expression="^9996$">
-      <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/play_test_wav.lua ivr/incoming.wav"/>
-      <action application="hangup"/>
-    </condition>
-  </extension>
-</include>
-<include>
-  <!-- WS voice-echo test via mod_audio_stream + admin-panel backend
-       Dial 9998:
-       - FreeSWITCH answers
        - (optional) plays a short beep to confirm answer
        - starts uuid_audio_stream to ws://127.0.0.1:9096/echo (mono = caller audio)
        - stays up so you can talk; the WS server returns your audio which is played back (echo)
@@ -54,7 +16,7 @@
       <action application="answer"/>
 
       <!-- Optional: short beep before streaming starts (so the beep itself is NOT echoed back) -->
-      <action application="playback" data="tone_stream://%(250,0,1000,1000)"/>
+      <!-- <action application="playback" data="tone_stream://%(250,0,1000,1000)"/> -->
 
       <!-- Start streaming after answer. Use mono so we only capture caller audio (your mic). -->
       <action application="api" data="uuid_audio_stream ${uuid} start ws://127.0.0.1:9096/echo mono 8000"/>
@@ -74,4 +36,3 @@
     </condition>
   </extension>
 </include>
-
