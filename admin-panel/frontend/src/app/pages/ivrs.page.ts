@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../core/api';
 import { OptionsService } from '../core/options.service';
 import { SearchSelectComponent, SearchSelectItem } from '../shared/search-select.component';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type IvrEntry = { digits: string; type: 'transfer' | 'queue' | 'ivr' | 'app'; target: string };
 type IvrMenu = {
@@ -266,6 +267,7 @@ export class IvrsPage {
   constructor(
     private readonly http: HttpClient,
     private readonly opts: OptionsService,
+    private readonly toast: ToastService,
   ) {
     this.opts.refresh();
     this.load();
@@ -348,13 +350,44 @@ export class IvrsPage {
   }
 
   private pushEntry(digits: string, type: any, target: string) {
-    (this.form.controls.entries as any).push(
-      new FormGroup({
-        digits: new FormControl(digits, { nonNullable: true, validators: [Validators.required] }),
-        type: new FormControl(type, { nonNullable: true }),
-        target: new FormControl(target, { nonNullable: true, validators: [Validators.required] }),
+    const g = new FormGroup({
+      digits: new FormControl(digits, {
+        nonNullable: true,
+        validators: [Validators.required, Validators.pattern(/^\d+$/)],
       }),
-    );
+      type: new FormControl(type, { nonNullable: true }),
+      target: new FormControl(target, { nonNullable: true, validators: [Validators.required] }),
+    });
+
+    // If user switches type (e.g., Transfer -> Queue), reset target to a valid default to avoid invalid ivr.conf.xml.
+    g.controls.type.valueChanges.subscribe((t) => {
+      const next = this.defaultTargetForType(t);
+      g.controls.target.setValue(next);
+    });
+
+    // Set a sensible default target if missing.
+    if (!g.controls.target.value) {
+      g.controls.target.setValue(this.defaultTargetForType(g.controls.type.value));
+    }
+
+    (this.form.controls.entries as any).push(g);
+  }
+
+  private defaultTargetForType(type: 'transfer' | 'queue' | 'ivr' | 'app') {
+    const o = this.options();
+    if (type === 'transfer') {
+      const first = o?.extensions?.[0];
+      return first ? `${first.id} XML default` : '1001 XML default';
+    }
+    if (type === 'queue') {
+      const first = o?.queues?.[0];
+      return first ? first.name : 'queue1@default';
+    }
+    if (type === 'ivr') {
+      const first = o?.ivrs?.[0];
+      return first ? first.name : 'main_ivr';
+    }
+    return 'menu-exec-app transfer 1001 XML default';
   }
 
   removeEntry(i: number) {
@@ -386,6 +419,7 @@ export class IvrsPage {
         next: () => {
           this.saving.set(false);
           this.modalOpen.set(false);
+          this.toast.success('IVR saved');
           this.load();
         },
         error: (err) => {
@@ -398,7 +432,10 @@ export class IvrsPage {
   remove(m: IvrMenu) {
     if (!confirm(`Delete IVR menu ${m.name}?`)) return;
     this.http.delete(`${API_BASE_URL}/pbx/ivrs/${encodeURIComponent(m.name)}?etag=${encodeURIComponent(this.etag() ?? '')}`).subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.toast.success('IVR deleted');
+        this.load();
+      },
       error: (err) => this.error.set(err?.error?.message ?? 'Failed to delete IVR'),
     });
   }

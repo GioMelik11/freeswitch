@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../core/api';
 import { OptionsService } from '../core/options.service';
 import { SearchSelectComponent, SearchSelectItem } from '../shared/search-select.component';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type Trunk = {
   name: string;
@@ -387,10 +388,30 @@ export class TrunksPage {
     outgoingSound: new FormControl('', { nonNullable: true }),
   });
 
-  constructor(private readonly http: HttpClient, private readonly opts: OptionsService) {
+  constructor(
+    private readonly http: HttpClient,
+    private readonly opts: OptionsService,
+    private readonly toast: ToastService,
+  ) {
     this.opts.refresh();
     this.load();
     this.loadStatuses();
+
+    this.form.controls.inboundType.valueChanges.subscribe((t) => {
+      // Reset inboundTarget when type changes to avoid saving invalid combinations.
+      const next = this.defaultInboundTarget(t);
+      this.form.controls.inboundTarget.setValue(next);
+    });
+  }
+
+  private defaultInboundTarget(type: string) {
+    const o = this.options();
+    if (!type || type === 'terminate') return '';
+    if (type === 'extension') return String(o?.extensions?.[0]?.id ?? '1001');
+    if (type === 'queue') return String(o?.queues?.[0]?.name ?? 'queue1@default');
+    if (type === 'ivr') return String(o?.ivrs?.[0]?.name ?? 'main_ivr');
+    if (type === 'timeCondition') return String(o?.timeConditions?.[0]?.extensionNumber ?? '6000');
+    return '';
   }
 
   filtered() {
@@ -514,6 +535,7 @@ export class TrunksPage {
       next: () => {
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.toast.success('Trunk saved');
         this.load();
         this.loadStatuses();
       },
@@ -552,6 +574,7 @@ export class TrunksPage {
       next: () => {
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.toast.success('Trunk deleted');
         this.load();
       },
       error: (err) => {

@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../core/api';
 import { OptionsService } from '../core/options.service';
 import { SearchSelectComponent, SearchSelectItem } from '../shared/search-select.component';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type Extension = {
   id: string;
@@ -271,7 +272,11 @@ export class ExtensionsPage {
     aiServiceId: new FormControl('', { nonNullable: true }),
   });
 
-  constructor(private readonly http: HttpClient, private readonly opts: OptionsService) {
+  constructor(
+    private readonly http: HttpClient,
+    private readonly opts: OptionsService,
+    private readonly toast: ToastService,
+  ) {
     this.opts.refresh();
     this.load();
     this.loadRegs();
@@ -379,6 +384,7 @@ export class ExtensionsPage {
       next: () => {
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.toast.success('Extension saved');
         this.load();
       },
       error: (err) => {
@@ -391,7 +397,10 @@ export class ExtensionsPage {
   remove(e: Extension) {
     if (!confirm(`Delete extension ${e.id}?`)) return;
     this.http.delete(`${API_BASE_URL}/pbx/extensions/${e.id}`).subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.toast.success('Extension deleted');
+        this.load();
+      },
       error: (err) => this.error.set(err?.error?.message ?? 'Failed to delete extension'),
     });
   }

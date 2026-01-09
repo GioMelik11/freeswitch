@@ -22,7 +22,13 @@ export class PbxMetaService {
   }
 
   private defaultMeta(): PbxMetaV1 {
-    return { version: 1, queues: {}, trunks: {}, aiServices: [], defaultAiServiceId: undefined };
+    return {
+      version: 1,
+      queues: {},
+      trunks: {},
+      aiServices: [],
+      defaultAiServiceId: undefined,
+    };
   }
 
   get(): { meta: PbxMetaV1; etag: string } {
@@ -49,7 +55,9 @@ export class PbxMetaService {
   write(meta: PbxMetaV1, etag?: string) {
     const current = this.get();
     if (etag && etag !== current.etag) {
-      throw new ConflictException('PBX meta changed since last read (etag mismatch)');
+      throw new ConflictException(
+        'PBX meta changed since last read (etag mismatch)',
+      );
     }
     const content = JSON.stringify(meta, null, 2) + '\n';
     fs.mkdirSync(path.dirname(this.metaPath), { recursive: true });
@@ -81,7 +89,11 @@ export class PbxMetaService {
 
   upsertTrunkMeta(
     name: string,
-    patch: { inboundDestination?: any; outgoingDefault?: any; prefixRules?: any[] },
+    patch: {
+      inboundDestination?: any;
+      outgoingDefault?: any;
+      prefixRules?: any[];
+    },
   ) {
     const cur = this.get();
     const meta = cur.meta;
@@ -99,5 +111,3 @@ export class PbxMetaService {
     return this.write(meta, cur.etag);
   }
 }
-
-

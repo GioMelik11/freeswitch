@@ -39,7 +39,9 @@ let AiController = class AiController {
     }
     listAiExtensions() {
         const list = this.extensions.list();
-        return list.filter((e) => Boolean(e.aiEnabled)).map((e) => ({
+        return list
+            .filter((e) => Boolean(e.aiEnabled))
+            .map((e) => ({
             id: e.id,
             callerIdName: e.callerIdName,
             aiServiceId: e.aiServiceId ?? null,
@@ -76,8 +78,9 @@ let AiController = class AiController {
                     continue;
                 services.set(String(s.id), String(s.socketUrl));
             }
-            const defaultUrl = (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-                (services.size ? [...services.values()][0] : '');
+            const defaultUrl = (m.defaultAiServiceId
+                ? (services.get(String(m.defaultAiServiceId)) ?? '')
+                : '') || (services.size ? [...services.values()][0] : '');
             this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
         }
         catch {

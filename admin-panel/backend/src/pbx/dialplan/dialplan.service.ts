@@ -1,15 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { FilesService } from '../../files/files.service';
 import { PbxDestination, PbxMetaV1 } from '../meta/pbx-meta.types';
 
 @Injectable()
 export class DialplanService {
-  constructor(private readonly files: FilesService) { }
+  constructor(private readonly files: FilesService) {}
 
   ensurePublicIncludesDir() {
     const rel = 'dialplan/public.xml';
     const read = this.files.readFile(rel);
-    if (read.content.includes('X-PRE-PROCESS cmd="include" data="public/*.xml"')) return;
+    if (
+      read.content.includes('X-PRE-PROCESS cmd="include" data="public/*.xml"')
+    )
+      return;
 
     // Insert include near top of <context name="public"> so generated rules can override catch-alls.
     const marker = '<context name="public">';
@@ -32,9 +35,17 @@ export class DialplanService {
       read.content.includes('X-PRE-PROCESS cmd="include" data="default/*.xml"')
     ) {
       // We want it earlier than built-in queue/outbound stanzas. If it already exists twice, don't touch.
-      const occurrences = (read.content.match(/X-PRE-PROCESS cmd="include" data="default\/\*\.xml"/g) || [])
-        .length;
-      if (occurrences >= 1 && read.content.indexOf('X-PRE-PROCESS cmd="include" data="default/*.xml"') < 800)
+      const occurrences = (
+        read.content.match(
+          /X-PRE-PROCESS cmd="include" data="default\/\*\.xml"/g,
+        ) || []
+      ).length;
+      if (
+        occurrences >= 1 &&
+        read.content.indexOf(
+          'X-PRE-PROCESS cmd="include" data="default/*.xml"',
+        ) < 800
+      )
         return;
     }
 
@@ -65,16 +76,16 @@ export class DialplanService {
     for (const [trunkName, t] of Object.entries(meta.trunks ?? {})) {
       if (!t?.inboundDestination) continue;
       const name = esc(trunkName);
-      const dest = t.inboundDestination as PbxDestination;
+      const dest = t.inboundDestination;
       extXml.push(
         `  <extension name="adminpanel_inbound_${name}">\n` +
-        `    <!-- Included into public context via dialplan/public.xml -->\n` +
-        `    <condition field="destination_number" expression="^(.*)$">\n` +
-        `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
-        `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-        renderDestination(dest).replace(/^ {8}/gm, '      ') +
-        `    </condition>\n` +
-        `  </extension>`,
+          `    <!-- Included into public context via dialplan/public.xml -->\n` +
+          `    <condition field="destination_number" expression="^(.*)$">\n` +
+          `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+          `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+          renderDestination(dest).replace(/^ {8}/gm, '      ') +
+          `    </condition>\n` +
+          `  </extension>`,
       );
     }
 
@@ -127,19 +138,21 @@ export class DialplanService {
       if (!q?.extensionNumber || !/^\d+$/.test(q.extensionNumber)) continue;
       const qname = esc(queueFullName);
       const dn = esc(q.extensionNumber);
-      const dest = q.timeoutDestination as PbxDestination | undefined;
+      const dest = q.timeoutDestination;
 
       // We keep the routing decision in Lua after callcenter returns.
-      const postLuaArgs = dest ? `${escLuaArg(dest.type)} ${escLuaArg((dest as any).target ?? '')}` : '';
+      const postLuaArgs = dest
+        ? `${escLuaArg(dest.type)} ${escLuaArg((dest as any).target ?? '')}`
+        : '';
 
       extXml.push(
         `    <extension name="adminpanel_queue_${qname}">\n` +
-        `      <condition field="destination_number" expression="^${dn}$">\n` +
-        `        <action application="answer"/>\n` +
-        `        <action application="callcenter" data="${qname}"/>\n` +
-        `        <action application="lua" data="adminpanel_queue_post.lua ${postLuaArgs}"/>\n` +
-        `      </condition>\n` +
-        `    </extension>`,
+          `      <condition field="destination_number" expression="^${dn}$">\n` +
+          `        <action application="answer"/>\n` +
+          `        <action application="callcenter" data="${qname}"/>\n` +
+          `        <action application="lua" data="adminpanel_queue_post.lua ${postLuaArgs}"/>\n` +
+          `      </condition>\n` +
+          `    </extension>`,
       );
     }
 
@@ -216,13 +229,19 @@ export class DialplanService {
   }
 
   writeExtensionsSpecial(
-    exts: Array<{ id: string; forwardMobile?: string; aiEnabled?: boolean; aiServiceId?: string }>,
+    exts: Array<{
+      id: string;
+      forwardMobile?: string;
+      aiEnabled?: boolean;
+      aiServiceId?: string;
+    }>,
     ai?: { services: Map<string, string>; defaultUrl?: string },
   ) {
     const rel = 'dialplan/default/10_adminpanel_extensions.xml';
     const extXml: string[] = [];
 
-    const aiScript = '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
+    const aiScript =
+      '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
 
     for (const e of exts) {
       const id = String(e.id ?? '').trim();
@@ -230,20 +249,24 @@ export class DialplanService {
 
       if (e.aiEnabled) {
         const sid = String((e as any).aiServiceId ?? '').trim();
-        const url = sid ? ai?.services?.get(sid) ?? '' : ai?.defaultUrl ?? '';
-        const setUrlLine = url ? `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n` : '';
+        const url = sid
+          ? (ai?.services?.get(sid) ?? '')
+          : (ai?.defaultUrl ?? '');
+        const setUrlLine = url
+          ? `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`
+          : '';
         extXml.push(
           `    <extension name="adminpanel_ai_${esc(id)}">\n` +
-          `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
-          `        <action application="answer"/>\n` +
-          `        <action application="sleep" data="500"/>\n` +
-          `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
-          setUrlLine +
-          `        <action application="lua" data="${aiScript} $${'{'}{audio_stream_url} mono 16k"/>\n` +
-          `        <action application="sleep" data="3600000"/>\n` +
-          `        <action application="hangup"/>\n` +
-          `      </condition>\n` +
-          `    </extension>`,
+            `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
+            `        <action application="answer"/>\n` +
+            `        <action application="sleep" data="500"/>\n` +
+            `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
+            setUrlLine +
+            `        <action application="lua" data="${aiScript} $${'{'}{audio_stream_url} mono 16k"/>\n` +
+            `        <action application="sleep" data="3600000"/>\n` +
+            `        <action application="hangup"/>\n` +
+            `      </condition>\n` +
+            `    </extension>`,
         );
         continue;
       }
@@ -252,15 +275,15 @@ export class DialplanService {
       if (mobile) {
         extXml.push(
           `    <extension name="adminpanel_forward_${esc(id)}">\n` +
-          `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
-          `        <action application="export" data="dialed_extension=${esc(id)}"/>\n` +
-          `        <action application="set" data="ringback=${'$'}{us-ring}"/>\n` +
-          `        <action application="set" data="call_timeout=30"/>\n` +
-          `        <action application="set" data="continue_on_fail=true"/>\n` +
-          `        <action application="set" data="hangup_after_bridge=true"/>\n` +
-          `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/sip_trunk_provider/${esc(mobile)}"/>\n` +
-          `      </condition>\n` +
-          `    </extension>`,
+            `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
+            `        <action application="export" data="dialed_extension=${esc(id)}"/>\n` +
+            `        <action application="set" data="ringback=${'$'}{us-ring}"/>\n` +
+            `        <action application="set" data="call_timeout=30"/>\n` +
+            `        <action application="set" data="continue_on_fail=true"/>\n` +
+            `        <action application="set" data="hangup_after_bridge=true"/>\n` +
+            `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/sip_trunk_provider/${esc(mobile)}"/>\n` +
+            `      </condition>\n` +
+            `    </extension>`,
         );
       }
     }
@@ -283,7 +306,9 @@ export class DialplanService {
 
     for (const [trunkName, t] of Object.entries(meta.trunks ?? {})) {
       const rules = (t as any)?.prefixRules ?? [];
-      const enabledRules = (rules as any[]).filter((r) => r && r.prefix && r.enabled !== false);
+      const enabledRules = (rules as any[]).filter(
+        (r) => r && r.prefix && r.enabled !== false,
+      );
       if (enabledRules.length === 0) continue;
 
       const trunkEsc = esc(trunkName);
@@ -306,25 +331,25 @@ export class DialplanService {
 
         conditions.push(
           `      <condition field="destination_number" expression="${esc(expr)}">\n` +
-          `        <action application="set" data="adminpanel_trunk_outgoing_sound=${esc(sound)}"/>\n` +
-          `        <action application="set" data="adminpanel_trunk_outgoing_ivr=${esc(ivr)}"/>\n` +
-          `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
-          `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-          `        <action application="set" data="ringback=${'$'}{adminpanel_outgoing_sound:-${'$'}{adminpanel_trunk_outgoing_sound:-${'$'}{us-ring}}}"/>\n` +
-          `        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>\n` +
-          `        <action application="set" data="call_timeout=60"/>\n` +
-          `        <action application="set" data="hangup_after_bridge=true"/>\n` +
-          `        <action application="set" data="continue_on_fail=true"/>\n` +
-          `        <action application="bridge" data="sofia/gateway/${trunkEsc}/${dialed}"/>\n` +
-          `      </condition>`,
+            `        <action application="set" data="adminpanel_trunk_outgoing_sound=${esc(sound)}"/>\n` +
+            `        <action application="set" data="adminpanel_trunk_outgoing_ivr=${esc(ivr)}"/>\n` +
+            `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+            `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+            `        <action application="set" data="ringback=${'$'}{adminpanel_outgoing_sound:-${'$'}{adminpanel_trunk_outgoing_sound:-${'$'}{us-ring}}}"/>\n` +
+            `        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>\n` +
+            `        <action application="set" data="call_timeout=60"/>\n` +
+            `        <action application="set" data="hangup_after_bridge=true"/>\n` +
+            `        <action application="set" data="continue_on_fail=true"/>\n` +
+            `        <action application="bridge" data="sofia/gateway/${trunkEsc}/${dialed}"/>\n` +
+            `      </condition>`,
         );
       }
 
       if (conditions.length) {
         extNodes.push(
           `    <extension name="adminpanel_outbound_${trunkEsc}">\n` +
-          `${conditions.join('\n')}\n` +
-          `    </extension>`,
+            `${conditions.join('\n')}\n` +
+            `    </extension>`,
         );
       }
     }
@@ -341,6 +366,7 @@ export class DialplanService {
 }
 
 function renderDestination(dest: PbxDestination) {
+  assertDestination(dest);
   switch (dest.type) {
     case 'terminate':
       return `        <action application="hangup" data="NORMAL_CLEARING"/>\n`;
@@ -362,6 +388,35 @@ function renderDestination(dest: PbxDestination) {
   }
 }
 
+function assertDestination(dest: PbxDestination) {
+  switch (dest.type) {
+    case 'terminate':
+      return;
+    case 'extension':
+    case 'timeCondition': {
+      const target = String(dest.target ?? '').trim();
+      if (!/^\d+$/.test(target)) {
+        throw new BadRequestException(`Invalid ${dest.type} target "${target}". Expected digits only.`);
+      }
+      return;
+    }
+    case 'queue': {
+      const target = String(dest.target ?? '').trim();
+      if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+        throw new BadRequestException(`Invalid queue target "${target}". Expected format like "queue1@default".`);
+      }
+      return;
+    }
+    case 'ivr': {
+      const target = String(dest.target ?? '').trim();
+      if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+        throw new BadRequestException(`Invalid IVR target "${target}".`);
+      }
+      return;
+    }
+  }
+}
+
 function esc(s: string) {
   return String(s)
     .replace(/&/g, '&amp;')
@@ -379,5 +434,3 @@ function escLuaArg(s: string) {
   // Keep args simple for lua argv parsing: strip whitespace and quotes.
   return String(s ?? '').replace(/["'\s]/g, '');
 }
-
-

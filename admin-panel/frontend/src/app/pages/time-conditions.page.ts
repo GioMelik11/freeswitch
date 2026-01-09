@@ -5,6 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { API_BASE_URL } from '../core/api';
 import { OptionsService } from '../core/options.service';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type Dest = { type: 'transfer' | 'ivr' | 'queue'; target: string };
 type TimeCondition = {
@@ -231,9 +232,32 @@ export class TimeConditionsPage {
   constructor(
     private readonly http: HttpClient,
     private readonly opts: OptionsService,
+    private readonly toast: ToastService,
   ) {
     this.opts.refresh();
     this.load();
+
+    // When switching destination types, reset targets to valid defaults (prevents saving invalid configs).
+    this.form.controls.onMatchType.valueChanges.subscribe((t) => {
+      this.form.controls.onMatchTarget.setValue(this.defaultTargetForType(t));
+    });
+    this.form.controls.onElseType.valueChanges.subscribe((t) => {
+      this.form.controls.onElseTarget.setValue(this.defaultTargetForType(t));
+    });
+  }
+
+  private defaultTargetForType(type: 'transfer' | 'ivr' | 'queue') {
+    const o = this.options();
+    if (type === 'transfer') {
+      const first = o?.extensions?.[0];
+      return first ? `${first.id} XML default` : '1001 XML default';
+    }
+    if (type === 'queue') {
+      const first = o?.queues?.[0];
+      return first ? first.name : 'queue1@default';
+    }
+    const first = o?.ivrs?.[0];
+    return first ? first.name : 'main_ivr';
   }
 
   filtered() {
@@ -332,6 +356,7 @@ export class TimeConditionsPage {
       next: () => {
         this.saving.set(false);
         this.modalOpen.set(false);
+        this.toast.success('Time condition saved');
         this.load();
       },
       error: (err) => {
@@ -344,7 +369,10 @@ export class TimeConditionsPage {
   remove(t: TimeCondition) {
     if (!confirm(`Delete time condition ${t.name}?`)) return;
     this.http.delete(`${API_BASE_URL}/pbx/time-conditions/${encodeURIComponent(t.name)}?etag=${encodeURIComponent(this.etag() ?? '')}`).subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.toast.success('Time condition deleted');
+        this.load();
+      },
       error: (err) => this.error.set(err?.error?.message ?? 'Failed to delete time condition'),
     });
   }

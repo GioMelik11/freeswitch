@@ -36,7 +36,11 @@ let FreeswitchService = class FreeswitchService {
                     modules.set(module, { module, enabled: false });
             }
         }
-        return { path, etag, modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)) };
+        return {
+            path,
+            etag,
+            modules: [...modules.values()].sort((a, b) => a.module.localeCompare(b.module)),
+        };
     }
     setModule(params) {
         const { module, enabled, etag } = params;
@@ -56,7 +60,11 @@ let FreeswitchService = class FreeswitchService {
         else {
             updated = updated.replace(disableRe, '$1<!-- $2 -->');
         }
-        return this.files.writeFile({ path: MODULES_CONF_PATH, content: updated, etag: etag ?? read.etag });
+        return this.files.writeFile({
+            path: MODULES_CONF_PATH,
+            content: updated,
+            etag: etag ?? read.etag,
+        });
     }
     appendModule(content, module) {
         const lines = content.split(/\r?\n/);
@@ -70,7 +78,9 @@ let FreeswitchService = class FreeswitchService {
                 inserted = true;
             }
         }
-        return inserted ? out.join('\n') : content + `\n<load module="${module}"/>\n`;
+        return inserted
+            ? out.join('\n')
+            : content + `\n<load module="${module}"/>\n`;
     }
 };
 exports.FreeswitchService = FreeswitchService;

@@ -23,5 +23,3 @@ export class FilesController {
     return this.files.writeFile(dto);
   }
 }
-
-

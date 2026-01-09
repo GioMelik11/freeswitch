@@ -5,12 +5,15 @@ import { AuthService } from '../core/auth.service';
 import { API_BASE_URL } from '../core/api';
 import { finalize } from 'rxjs/operators';
 import { timeout } from 'rxjs/operators';
+import { ToastOutletComponent } from '../shared/toast-outlet.component';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   standalone: true,
-  imports: [RouterModule],
+  imports: [RouterModule, ToastOutletComponent],
   template: `
     <div class="min-h-screen">
+      <app-toast-outlet />
       <div class="border-b border-slate-800 bg-slate-950/40">
         <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
           <div class="font-semibold">FreeSWITCH Admin</div>
@@ -106,6 +109,7 @@ export class ShellComponent {
   constructor(
     private readonly auth: AuthService,
     private readonly http: HttpClient,
+    private readonly toast: ToastService,
   ) { }
 
   reloadFs() {
@@ -121,13 +125,13 @@ export class ShellComponent {
         next: (res: any) => {
           const ok = Boolean(res?.ok);
           if (!ok) {
-            alert('Reload finished with errors. Open devtools Network to inspect the response.');
+            this.toast.error('Reload finished with errors. Check the response in Network/Logs.');
           } else {
-            alert('FreeSWITCH reload done.');
+            this.toast.success('FreeSWITCH reload done.');
           }
         },
         error: (err) => {
-          alert(err?.error?.message ?? err?.message ?? 'Failed to reload FreeSWITCH');
+          this.toast.error(err?.error?.message ?? err?.message ?? 'Failed to reload FreeSWITCH');
         },
       });
   }

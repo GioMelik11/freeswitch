@@ -16,14 +16,18 @@ export class ExtensionsService {
   ) {}
 
   list(): Extension[] {
-    const files = this.files.listFiles(EXT_DIR, { regex: /^\d+\.xml$/i, extensions: ['.xml'] });
+    const files = this.files.listFiles(EXT_DIR, {
+      regex: /^\d+\.xml$/i,
+      extensions: ['.xml'],
+    });
     return files
       .map((f: { name: string; path: string }) => this.getByPath(f.path))
       .sort((a, b) => Number(a.id) - Number(b.id));
   }
 
   get(id: string) {
-    if (!/^\d+$/.test(id)) throw new BadRequestException('Invalid extension id');
+    if (!/^\d+$/.test(id))
+      throw new BadRequestException('Invalid extension id');
     const filePath = `${EXT_DIR}/${id}.xml`;
     return this.getByPath(filePath);
   }
@@ -37,7 +41,8 @@ export class ExtensionsService {
     const user = include?.user;
     const userNode = Array.isArray(user) ? user[0] : user;
     const id = String(userNode?.['@_id'] ?? '');
-    if (!id) throw new BadRequestException(`Invalid extension file: ${filePath}`);
+    if (!id)
+      throw new BadRequestException(`Invalid extension file: ${filePath}`);
 
     const params = asArray(userNode?.params?.param);
     const variables = asArray(userNode?.variables?.variable);
@@ -51,14 +56,27 @@ export class ExtensionsService {
       filePath,
       password: String(getParam('password') ?? ''),
       userContext: String(getVar('user_context') ?? 'default'),
-      callerIdName: String(getVar('effective_caller_id_name') ?? `Extension ${id}`),
+      callerIdName: String(
+        getVar('effective_caller_id_name') ?? `Extension ${id}`,
+      ),
       callerIdNumber: String(getVar('effective_caller_id_number') ?? id),
       callgroup: getVar('callgroup') ? String(getVar('callgroup')) : undefined,
-      outgoingSound: getVar('adminpanel_outgoing_sound') ? String(getVar('adminpanel_outgoing_sound')) : undefined,
-      outgoingIvr: getVar('adminpanel_outgoing_ivr') ? String(getVar('adminpanel_outgoing_ivr')) : undefined,
-      forwardMobile: getVar('adminpanel_forward_mobile') ? String(getVar('adminpanel_forward_mobile')) : undefined,
-      aiEnabled: String(getVar('adminpanel_ai_enabled') ?? 'false') === 'true' ? true : undefined,
-      aiServiceId: getVar('adminpanel_ai_service_id') ? String(getVar('adminpanel_ai_service_id')) : undefined,
+      outgoingSound: getVar('adminpanel_outgoing_sound')
+        ? String(getVar('adminpanel_outgoing_sound'))
+        : undefined,
+      outgoingIvr: getVar('adminpanel_outgoing_ivr')
+        ? String(getVar('adminpanel_outgoing_ivr'))
+        : undefined,
+      forwardMobile: getVar('adminpanel_forward_mobile')
+        ? String(getVar('adminpanel_forward_mobile'))
+        : undefined,
+      aiEnabled:
+        String(getVar('adminpanel_ai_enabled') ?? 'false') === 'true'
+          ? true
+          : undefined,
+      aiServiceId: getVar('adminpanel_ai_service_id')
+        ? String(getVar('adminpanel_ai_service_id'))
+        : undefined,
     };
   }
 
@@ -77,14 +95,19 @@ export class ExtensionsService {
     etag?: string;
   }) {
     const id = input.id;
-    if (!/^\d+$/.test(id)) throw new BadRequestException('Invalid extension id');
+    if (!/^\d+$/.test(id))
+      throw new BadRequestException('Invalid extension id');
     const filePath = `${EXT_DIR}/${id}.xml`;
 
     if (input.aiEnabled) {
       const m = this.meta.get().meta;
-      const hasService = (m.aiServices ?? []).some((s: any) => s && s.enabled !== false && s.socketUrl);
+      const hasService = (m.aiServices ?? []).some(
+        (s: any) => s && s.enabled !== false && s.socketUrl,
+      );
       if (!hasService) {
-        throw new BadRequestException('No AI services configured. Add at least one AI service first.');
+        throw new BadRequestException(
+          'No AI services configured. Add at least one AI service first.',
+        );
       }
     }
 
@@ -102,12 +125,17 @@ export class ExtensionsService {
       aiServiceId: input.aiServiceId,
     });
 
-    const res = this.files.writeFile({ path: filePath, content: xml, etag: input.etag });
+    const res = this.files.writeFile({
+      path: filePath,
+      content: xml,
+      etag: input.etag,
+    });
 
     // regenerate extension dialplan (AI + mobile forward)
     try {
       const list = this.list();
-      if (this.dialplan?.ensureDefaultIncludesDirEarly) this.dialplan.ensureDefaultIncludesDirEarly();
+      if (this.dialplan?.ensureDefaultIncludesDirEarly)
+        this.dialplan.ensureDefaultIncludesDirEarly();
       if (this.dialplan?.writeExtensionsSpecial) {
         const m = this.meta.get().meta;
         const services = new Map<string, string>();
@@ -117,8 +145,9 @@ export class ExtensionsService {
           services.set(String(s.id), String(s.socketUrl));
         }
         const defaultUrl =
-          (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-          (services.size ? [...services.values()][0] : '');
+          (m.defaultAiServiceId
+            ? (services.get(String(m.defaultAiServiceId)) ?? '')
+            : '') || (services.size ? [...services.values()][0] : '');
         this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
       }
     } catch {
@@ -129,12 +158,14 @@ export class ExtensionsService {
   }
 
   delete(id: string, etag?: string) {
-    if (!/^\d+$/.test(id)) throw new BadRequestException('Invalid extension id');
+    if (!/^\d+$/.test(id))
+      throw new BadRequestException('Invalid extension id');
     const filePath = `${EXT_DIR}/${id}.xml`;
     const res = this.files.deleteFile(filePath, etag);
     try {
       const list = this.list();
-      if (this.dialplan?.ensureDefaultIncludesDirEarly) this.dialplan.ensureDefaultIncludesDirEarly();
+      if (this.dialplan?.ensureDefaultIncludesDirEarly)
+        this.dialplan.ensureDefaultIncludesDirEarly();
       if (this.dialplan?.writeExtensionsSpecial) {
         const m = this.meta.get().meta;
         const services = new Map<string, string>();
@@ -144,8 +175,9 @@ export class ExtensionsService {
           services.set(String(s.id), String(s.socketUrl));
         }
         const defaultUrl =
-          (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-          (services.size ? [...services.values()][0] : '');
+          (m.defaultAiServiceId
+            ? (services.get(String(m.defaultAiServiceId)) ?? '')
+            : '') || (services.size ? [...services.values()][0] : '');
         this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
       }
     } catch {
@@ -226,5 +258,3 @@ function escapeXml(s: string) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
-
-

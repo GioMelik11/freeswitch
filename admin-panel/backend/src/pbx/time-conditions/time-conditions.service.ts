@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { FilesService } from '../../files/files.service';
 import { asArray, xmlParser } from '../xml';
-import { TimeCondition, TimeConditionDestination } from './time-conditions.types';
+import {
+  TimeCondition,
+  TimeConditionDestination,
+} from './time-conditions.types';
 
 const TC_PATH = 'dialplan/default/99_time_conditions.xml';
 
@@ -33,11 +36,19 @@ export class TimeConditionsService {
       const name = String(ext?.['@_name'] ?? '');
       const c1 = asArray(ext?.condition)[0];
       const dnExpr = String(c1?.['@_expression'] ?? '');
-      const extensionNumber = dnExpr.replace(/^\^?/, '').replace(/\$?$/, '').replace(/\$$/, '').replace(/\^|\$/g, '');
+      const extensionNumber = dnExpr
+        .replace(/^\^?/, '')
+        .replace(/\$?$/, '')
+        .replace(/\$$/, '')
+        .replace(/\^|\$/g, '');
 
       const nested = asArray(c1?.condition);
-      const dayCond = nested.find((c: any) => String(c?.['@_field'] ?? '').includes('strftime(%u)'));
-      const hourCond = nested.find((c: any) => String(c?.['@_field'] ?? '').includes('strftime(%H)'));
+      const dayCond = nested.find((c: any) =>
+        String(c?.['@_field'] ?? '').includes('strftime(%u)'),
+      );
+      const hourCond = nested.find((c: any) =>
+        String(c?.['@_field'] ?? '').includes('strftime(%H)'),
+      );
 
       const days = parseNumberAlternation(dayCond?.['@_expression']);
       const hours = parseNumberAlternation(hourCond?.['@_expression']);
@@ -67,11 +78,17 @@ export class TimeConditionsService {
     const ctx = include?.context;
     const exts = asArray(ctx?.extension);
 
-    const nextExts = exts.filter((e: any) => String(e?.['@_name'] ?? '') !== input.name);
+    const nextExts = exts.filter(
+      (e: any) => String(e?.['@_name'] ?? '') !== input.name,
+    );
     nextExts.push(this.buildExtension(input));
 
     const out = this.render(nextExts);
-    return this.files.writeFile({ path: TC_PATH, content: out, etag: input.etag ?? read.etag });
+    return this.files.writeFile({
+      path: TC_PATH,
+      content: out,
+      etag: input.etag ?? read.etag,
+    });
   }
 
   delete(name: string, etag: string) {
@@ -79,15 +96,24 @@ export class TimeConditionsService {
     const obj: any = xmlParser.parse(read.content);
     const include = obj?.include;
     const ctx = include?.context;
-    const exts = asArray(ctx?.extension).filter((e: any) => String(e?.['@_name'] ?? '') !== name);
+    const exts = asArray(ctx?.extension).filter(
+      (e: any) => String(e?.['@_name'] ?? '') !== name,
+    );
     const out = this.render(exts);
-    return this.files.writeFile({ path: TC_PATH, content: out, etag: etag ?? read.etag });
+    return this.files.writeFile({
+      path: TC_PATH,
+      content: out,
+      etag: etag ?? read.etag,
+    });
   }
 
   private buildExtension(tc: TimeCondition) {
-    if (!/^\d+$/.test(tc.extensionNumber)) throw new BadRequestException('Invalid extensionNumber');
+    if (!/^\d+$/.test(tc.extensionNumber))
+      throw new BadRequestException('Invalid extensionNumber');
     const daysExpr = buildAlternation(tc.days.map((d) => String(d)));
-    const hours = hourList(tc.startHour, tc.endHour).map((h) => String(h).padStart(2, '0'));
+    const hours = hourList(tc.startHour, tc.endHour).map((h) =>
+      String(h).padStart(2, '0'),
+    );
     const hoursExpr = buildAlternation(hours);
 
     const matchAction = buildAction(tc.onMatch);
@@ -115,7 +141,9 @@ export class TimeConditionsService {
   }
 
   private render(extNodes: any[]) {
-    const extensionsXml = extNodes.map((e) => this.renderExtension(e)).join('\n');
+    const extensionsXml = extNodes
+      .map((e) => this.renderExtension(e))
+      .join('\n');
     return (
       `<include>\n` +
       `  <context name="default">\n` +
@@ -130,8 +158,12 @@ export class TimeConditionsService {
     const c1 = e.condition;
     const dnExpr = esc(c1['@_expression']);
     const nested = asArray(c1.condition);
-    const day = nested.find((c: any) => String(c['@_field']).includes('strftime(%u)'));
-    const hour = nested.find((c: any) => String(c['@_field']).includes('strftime(%H)'));
+    const day = nested.find((c: any) =>
+      String(c['@_field']).includes('strftime(%u)'),
+    );
+    const hour = nested.find((c: any) =>
+      String(c['@_field']).includes('strftime(%H)'),
+    );
 
     const dayExpr = esc(day['@_expression']);
     const hourExpr = esc(hour['@_expression']);
@@ -153,9 +185,31 @@ export class TimeConditionsService {
 }
 
 function buildAction(dest: TimeConditionDestination, anti = false) {
-  if (dest.type === 'transfer') return { '@_application': 'transfer', '@_data': dest.target };
-  if (dest.type === 'ivr') return { '@_application': 'ivr', '@_data': dest.target };
-  if (dest.type === 'queue') return { '@_application': 'callcenter', '@_data': dest.target };
+  if (dest.type === 'transfer') {
+    const target = String(dest.target ?? '').trim();
+    if (!/^\d+\s+XML\s+\w+$/.test(target)) {
+      throw new BadRequestException(
+        `Invalid transfer target "${target}". Expected format like "1001 XML default".`,
+      );
+    }
+    return { '@_application': 'transfer', '@_data': target };
+  }
+  if (dest.type === 'ivr') {
+    const target = String(dest.target ?? '').trim();
+    if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+      throw new BadRequestException(`Invalid IVR target "${target}".`);
+    }
+    return { '@_application': 'ivr', '@_data': target };
+  }
+  if (dest.type === 'queue') {
+    const target = String(dest.target ?? '').trim();
+    if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+      throw new BadRequestException(
+        `Invalid queue target "${target}". Expected format like "queue1@default".`,
+      );
+    }
+    return { '@_application': 'callcenter', '@_data': target };
+  }
   if (anti) return { '@_application': 'hangup', '@_data': 'NORMAL_CLEARING' };
   return { '@_application': 'hangup', '@_data': 'NORMAL_CLEARING' };
 }
@@ -191,7 +245,10 @@ function hourList(start: number, end: number) {
 }
 
 function parseNumberAlternation(expr: any): number[] {
-  const s = String(expr ?? '').replace(/^\^/, '').replace(/\$$/, '').replace(/[()]/g, '');
+  const s = String(expr ?? '')
+    .replace(/^\^/, '')
+    .replace(/\$$/, '')
+    .replace(/[()]/g, '');
   if (!s) return [];
   return s
     .split('|')
@@ -215,5 +272,3 @@ function esc(s: string) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
-
-

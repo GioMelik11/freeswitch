@@ -67,7 +67,8 @@ let FilesService = class FilesService {
             throw new common_1.BadRequestException('Absolute paths are not allowed');
         const normalized = relPath.replace(/\\/g, '/');
         const resolved = path.resolve(this.baseDir, normalized);
-        if (!resolved.startsWith(this.baseDir + path.sep) && resolved !== this.baseDir) {
+        if (!resolved.startsWith(this.baseDir + path.sep) &&
+            resolved !== this.baseDir) {
             throw new common_1.BadRequestException('Path escapes base directory');
         }
         return { normalized, resolved };
@@ -116,7 +117,11 @@ let FilesService = class FilesService {
             if (stat.isDirectory())
                 nodes.push(this.walkDir(rel));
             else
-                nodes.push({ type: 'file', name: path.basename(rel), path: rel.replace(/\\/g, '/') });
+                nodes.push({
+                    type: 'file',
+                    name: path.basename(rel),
+                    path: rel.replace(/\\/g, '/'),
+                });
         }
         return nodes;
     }
@@ -145,7 +150,12 @@ let FilesService = class FilesService {
                 return a.type === 'dir' ? -1 : 1;
             return a.name.localeCompare(b.name);
         });
-        return { type: 'dir', name: path.basename(relDir), path: relDir.replace(/\\/g, '/'), children };
+        return {
+            type: 'dir',
+            name: path.basename(relDir),
+            path: relDir.replace(/\\/g, '/'),
+            children,
+        };
     }
     readFile(relPath) {
         const { resolved } = this.resolveSafe(relPath);
@@ -157,7 +167,12 @@ let FilesService = class FilesService {
         if (!this.isAllowedTextFile(resolved))
             throw new common_1.BadRequestException('File type not allowed');
         const content = fs.readFileSync(resolved, 'utf8');
-        return { path: relPath.replace(/\\/g, '/'), content, etag: this.sha256(content), mtimeMs: stat.mtimeMs };
+        return {
+            path: relPath.replace(/\\/g, '/'),
+            content,
+            etag: this.sha256(content),
+            mtimeMs: stat.mtimeMs,
+        };
     }
     writeFile(params) {
         const { path: relPath, content, etag } = params;

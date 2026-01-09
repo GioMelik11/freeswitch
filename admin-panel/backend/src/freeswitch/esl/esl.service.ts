@@ -57,7 +57,8 @@ export class EslService {
 
       socket.write(`auth ${this.password}\n\n`);
       const auth = await this.readFrame(socket);
-      const authText = (auth.body || '').trim() || (auth.headers['reply-text'] ?? '');
+      const authText =
+        (auth.body || '').trim() || (auth.headers['reply-text'] ?? '');
       if (!authText.startsWith('+OK')) {
         throw new Error(`ESL auth failed: ${authText}`);
       }
@@ -106,7 +107,10 @@ export class EslService {
           const sepLen = idxRN !== -1 ? 4 : 2;
           if (idx === -1) return;
           const headerRaw = buf.slice(0, idx).toString('utf8');
-          const lines = headerRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          const lines = headerRaw
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
           headers = {};
           for (const line of lines) {
             const s = line.indexOf(':');
@@ -146,5 +150,3 @@ export class EslService {
     });
   }
 }
-
-

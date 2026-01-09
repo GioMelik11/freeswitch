@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { UpsertTrunkDto } from './dto/upsert-trunk.dto';
 import { TrunksService } from './trunks.service';
@@ -28,5 +37,3 @@ export class TrunksController {
     return this.svc.delete(name, etag);
   }
 }
-
-

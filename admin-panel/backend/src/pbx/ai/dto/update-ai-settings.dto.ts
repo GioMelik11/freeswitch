@@ -8,5 +8,3 @@ export class UpdateAiSettingsDto {
   @IsString()
   etag?: string;
 }
-
-

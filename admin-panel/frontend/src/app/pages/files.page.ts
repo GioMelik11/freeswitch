@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_BASE_URL } from '../core/api';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type TreeNode =
   | { type: 'file'; name: string; path: string }
@@ -157,7 +158,10 @@ export class FilesPage {
   page = signal(1);
   pageSize = signal(10);
 
-  constructor(private readonly http: HttpClient) {
+  constructor(
+    private readonly http: HttpClient,
+    private readonly toast: ToastService,
+  ) {
     this.loadTree();
   }
 
@@ -170,7 +174,7 @@ export class FilesPage {
     if (!p) return;
     const path = p.trim().replace(/\\/g, '/');
     if (!/^[a-zA-Z0-9_./-]+$/.test(path) || !path.includes('.') || path.startsWith('/') || path.includes('..')) {
-      alert('Invalid path');
+      this.toast.error('Invalid path');
       return;
     }
 
@@ -193,6 +197,7 @@ export class FilesPage {
           this.loadTree();
           this.selectedPath.set(path);
           this.reloadFile();
+          this.toast.success('File created');
         },
         error: (err) => {
           this.error.set(err?.error?.message ?? 'Failed to create file');

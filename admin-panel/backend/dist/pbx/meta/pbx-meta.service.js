@@ -61,7 +61,13 @@ let PbxMetaService = class PbxMetaService {
         return crypto.createHash('sha256').update(s).digest('hex');
     }
     defaultMeta() {
-        return { version: 1, queues: {}, trunks: {}, aiServices: [], defaultAiServiceId: undefined };
+        return {
+            version: 1,
+            queues: {},
+            trunks: {},
+            aiServices: [],
+            defaultAiServiceId: undefined,
+        };
     }
     get() {
         if (!fs.existsSync(this.metaPath)) {

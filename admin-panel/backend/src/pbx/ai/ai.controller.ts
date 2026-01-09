@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ExtensionsService } from '../extensions/extensions.service';
 import { AiService } from './ai.service';
@@ -29,11 +37,13 @@ export class AiController {
   @Get('extensions')
   listAiExtensions() {
     const list = this.extensions.list();
-    return list.filter((e: any) => Boolean(e.aiEnabled)).map((e: any) => ({
-      id: e.id,
-      callerIdName: e.callerIdName,
-      aiServiceId: (e as any).aiServiceId ?? null,
-    }));
+    return list
+      .filter((e: any) => Boolean(e.aiEnabled))
+      .map((e: any) => ({
+        id: e.id,
+        callerIdName: e.callerIdName,
+        aiServiceId: e.aiServiceId ?? null,
+      }));
   }
 
   @Get('services')
@@ -44,7 +54,13 @@ export class AiController {
   @Post('services')
   upsertService(
     @Body()
-    body: { id?: string; name: string; socketUrl?: string; audioStreamUrl?: string; enabled?: boolean },
+    body: {
+      id?: string;
+      name: string;
+      socketUrl?: string;
+      audioStreamUrl?: string;
+      enabled?: boolean;
+    },
   ) {
     const res = this.ai.upsertService(body);
     this.regenExtensionsDialplan();
@@ -77,13 +93,12 @@ export class AiController {
         services.set(String(s.id), String(s.socketUrl));
       }
       const defaultUrl =
-        (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-        (services.size ? [...services.values()][0] : '');
+        (m.defaultAiServiceId
+          ? (services.get(String(m.defaultAiServiceId)) ?? '')
+          : '') || (services.size ? [...services.values()][0] : '');
       this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
     } catch {
       // best-effort: don't fail API call if regen fails
     }
   }
 }
-
-

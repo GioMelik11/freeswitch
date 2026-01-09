@@ -17,5 +17,3 @@ export type IvrMenu = {
   digitLen?: string;
   entries: IvrEntry[];
 };
-
-

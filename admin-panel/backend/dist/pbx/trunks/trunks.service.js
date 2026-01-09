@@ -42,8 +42,14 @@ let TrunksService = class TrunksService {
         this.assertName(input.name);
         const filePath = `${TRUNK_DIR}/${input.name}.xml`;
         const xml = this.render(input);
-        const res = this.files.writeFile({ path: filePath, content: xml, etag: input.etag });
-        if (input.inboundDestination || input.outgoingDefault || input.prefixRules) {
+        const res = this.files.writeFile({
+            path: filePath,
+            content: xml,
+            etag: input.etag,
+        });
+        if (input.inboundDestination ||
+            input.outgoingDefault ||
+            input.prefixRules) {
             this.meta.upsertTrunkMeta(input.name, {
                 inboundDestination: input.inboundDestination,
                 outgoingDefault: input.outgoingDefault,

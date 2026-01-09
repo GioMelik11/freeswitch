@@ -12,5 +12,3 @@ export type Extension = {
   aiEnabled?: boolean; // if true, calls to this extension go to AI service
   aiServiceId?: string; // which AI service/socket to use (from PBX meta)
 };
-
-

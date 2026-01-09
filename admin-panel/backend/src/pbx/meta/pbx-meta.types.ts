@@ -44,5 +44,3 @@ export type PbxMetaV1 = {
     }
   >; // key: trunk (gateway) name
 };
-
-

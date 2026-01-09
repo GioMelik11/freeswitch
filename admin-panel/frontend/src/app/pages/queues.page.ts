@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../core/api';
 import { OptionsService } from '../core/options.service';
 import { SearchSelectComponent, SearchSelectItem } from '../shared/search-select.component';
 import { PaginationComponent } from '../shared/pagination.component';
+import { ToastService } from '../shared/toast.service';
 
 type Queue = {
     name: string;
@@ -288,9 +289,24 @@ export class QueuesPage {
     constructor(
         private readonly http: HttpClient,
         private readonly opts: OptionsService,
+        private readonly toast: ToastService,
     ) {
         this.opts.refresh();
         this.load();
+
+        this.form.controls.timeoutType.valueChanges.subscribe((t) => {
+            this.form.controls.timeoutTarget.setValue(this.defaultTimeoutTarget(t));
+        });
+    }
+
+    private defaultTimeoutTarget(type: string) {
+        const o = this.options();
+        if (!type || type === 'terminate') return '';
+        if (type === 'extension') return String(o?.extensions?.[0]?.id ?? '1001');
+        if (type === 'queue') return String(o?.queues?.[0]?.name ?? 'queue1@default');
+        if (type === 'ivr') return String(o?.ivrs?.[0]?.name ?? 'main_ivr');
+        if (type === 'timeCondition') return String(o?.timeConditions?.[0]?.extensionNumber ?? '6000');
+        return '';
     }
 
     filteredQueues() {
@@ -415,6 +431,7 @@ export class QueuesPage {
                     this.etag.set(res.etag ?? this.etag());
                     this.saving.set(false);
                     this.modalOpen.set(false);
+                    this.toast.success('Queue saved');
                     this.load();
                 },
                 error: (err) => {
@@ -428,7 +445,10 @@ export class QueuesPage {
         const [short, domain] = q.name.split('@');
         if (!confirm(`Delete queue ${q.name}?`)) return;
         this.http.delete(`${API_BASE_URL}/pbx/queues/${short}?domain=${encodeURIComponent(domain ?? 'default')}&etag=${encodeURIComponent(this.etag() ?? '')}`).subscribe({
-            next: () => this.load(),
+            next: () => {
+                this.toast.success('Queue deleted');
+                this.load();
+            },
             error: (err) => this.error.set(err?.error?.message ?? 'Failed to delete queue'),
         });
     }

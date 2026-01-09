@@ -66,7 +66,11 @@ let AiService = class AiService {
             throw new common_1.BadRequestException('audioStreamUrl is required');
         const read = this.files.readFile(VARS_PATH);
         const next = setPreProcessVar(read.content, 'audio_stream_url', url);
-        return this.files.writeFile({ path: VARS_PATH, content: next, etag: input.etag ?? read.etag });
+        return this.files.writeFile({
+            path: VARS_PATH,
+            content: next,
+            etag: input.etag ?? read.etag,
+        });
     }
     listServices() {
         const cur = this.meta.get();
@@ -76,7 +80,11 @@ let AiService = class AiService {
             socketUrl: String(s.socketUrl ?? ''),
             enabled: s.enabled !== false,
         }));
-        return { etag: cur.etag, services, defaultAiServiceId: cur.meta.defaultAiServiceId ?? null };
+        return {
+            etag: cur.etag,
+            services,
+            defaultAiServiceId: cur.meta.defaultAiServiceId ?? null,
+        };
     }
     upsertService(input) {
         const cur = this.meta.get();

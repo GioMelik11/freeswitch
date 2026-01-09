@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { UpsertExtensionDto } from './dto/upsert-extension.dto';
 import { ExtensionsService } from './extensions.service';
@@ -28,5 +37,3 @@ export class ExtensionsController {
     return this.svc.delete(id, etag);
   }
 }
-
-

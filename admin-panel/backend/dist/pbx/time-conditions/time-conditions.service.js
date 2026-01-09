@@ -41,7 +41,11 @@ let TimeConditionsService = class TimeConditionsService {
             const name = String(ext?.['@_name'] ?? '');
             const c1 = (0, xml_1.asArray)(ext?.condition)[0];
             const dnExpr = String(c1?.['@_expression'] ?? '');
-            const extensionNumber = dnExpr.replace(/^\^?/, '').replace(/\$?$/, '').replace(/\$$/, '').replace(/\^|\$/g, '');
+            const extensionNumber = dnExpr
+                .replace(/^\^?/, '')
+                .replace(/\$?$/, '')
+                .replace(/\$$/, '')
+                .replace(/\^|\$/g, '');
             const nested = (0, xml_1.asArray)(c1?.condition);
             const dayCond = nested.find((c) => String(c?.['@_field'] ?? '').includes('strftime(%u)'));
             const hourCond = nested.find((c) => String(c?.['@_field'] ?? '').includes('strftime(%H)'));
@@ -71,7 +75,11 @@ let TimeConditionsService = class TimeConditionsService {
         const nextExts = exts.filter((e) => String(e?.['@_name'] ?? '') !== input.name);
         nextExts.push(this.buildExtension(input));
         const out = this.render(nextExts);
-        return this.files.writeFile({ path: TC_PATH, content: out, etag: input.etag ?? read.etag });
+        return this.files.writeFile({
+            path: TC_PATH,
+            content: out,
+            etag: input.etag ?? read.etag,
+        });
     }
     delete(name, etag) {
         const read = this.files.readFile(TC_PATH);
@@ -80,7 +88,11 @@ let TimeConditionsService = class TimeConditionsService {
         const ctx = include?.context;
         const exts = (0, xml_1.asArray)(ctx?.extension).filter((e) => String(e?.['@_name'] ?? '') !== name);
         const out = this.render(exts);
-        return this.files.writeFile({ path: TC_PATH, content: out, etag: etag ?? read.etag });
+        return this.files.writeFile({
+            path: TC_PATH,
+            content: out,
+            etag: etag ?? read.etag,
+        });
     }
     buildExtension(tc) {
         if (!/^\d+$/.test(tc.extensionNumber))
@@ -111,7 +123,9 @@ let TimeConditionsService = class TimeConditionsService {
         };
     }
     render(extNodes) {
-        const extensionsXml = extNodes.map((e) => this.renderExtension(e)).join('\n');
+        const extensionsXml = extNodes
+            .map((e) => this.renderExtension(e))
+            .join('\n');
         return (`<include>\n` +
             `  <context name="default">\n` +
             `${extensionsXml}\n` +
@@ -146,12 +160,27 @@ exports.TimeConditionsService = TimeConditionsService = __decorate([
     __metadata("design:paramtypes", [files_service_1.FilesService])
 ], TimeConditionsService);
 function buildAction(dest, anti = false) {
-    if (dest.type === 'transfer')
-        return { '@_application': 'transfer', '@_data': dest.target };
-    if (dest.type === 'ivr')
-        return { '@_application': 'ivr', '@_data': dest.target };
-    if (dest.type === 'queue')
-        return { '@_application': 'callcenter', '@_data': dest.target };
+    if (dest.type === 'transfer') {
+        const target = String(dest.target ?? '').trim();
+        if (!/^\d+\s+XML\s+\w+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid transfer target "${target}". Expected format like "1001 XML default".`);
+        }
+        return { '@_application': 'transfer', '@_data': target };
+    }
+    if (dest.type === 'ivr') {
+        const target = String(dest.target ?? '').trim();
+        if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid IVR target "${target}".`);
+        }
+        return { '@_application': 'ivr', '@_data': target };
+    }
+    if (dest.type === 'queue') {
+        const target = String(dest.target ?? '').trim();
+        if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid queue target "${target}". Expected format like "queue1@default".`);
+        }
+        return { '@_application': 'callcenter', '@_data': target };
+    }
     if (anti)
         return { '@_application': 'hangup', '@_data': 'NORMAL_CLEARING' };
     return { '@_application': 'hangup', '@_data': 'NORMAL_CLEARING' };
@@ -189,7 +218,10 @@ function hourList(start, end) {
     return out;
 }
 function parseNumberAlternation(expr) {
-    const s = String(expr ?? '').replace(/^\^/, '').replace(/\$$/, '').replace(/[()]/g, '');
+    const s = String(expr ?? '')
+        .replace(/^\^/, '')
+        .replace(/\$$/, '')
+        .replace(/[()]/g, '');
     if (!s)
         return [];
     return s

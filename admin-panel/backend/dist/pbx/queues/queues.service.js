@@ -64,6 +64,9 @@ let QueuesService = class QueuesService {
     upsertQueue(input) {
         const domain = input.domain ?? 'default';
         const fullName = `${input.name}@${domain}`;
+        if (input.timeoutDestination) {
+            assertQueueTimeoutDestination(input.timeoutDestination);
+        }
         const read = this.files.readFile(CALLCENTER_PATH);
         const obj = xml_1.xmlParser.parse(read.content);
         const cfg = obj?.configuration;
@@ -122,7 +125,11 @@ let QueuesService = class QueuesService {
             agents: newAgents,
             tiers: newTiers,
         });
-        const res = this.files.writeFile({ path: CALLCENTER_PATH, content: updated, etag: input.etag ?? read.etag });
+        const res = this.files.writeFile({
+            path: CALLCENTER_PATH,
+            content: updated,
+            etag: input.etag ?? read.etag,
+        });
         if (input.extensionNumber || input.timeoutDestination) {
             this.meta.upsertQueueMeta(fullName, {
                 extensionNumber: input.extensionNumber,
@@ -150,7 +157,11 @@ let QueuesService = class QueuesService {
             agents: (0, xml_1.asArray)(cfg?.agents?.agent),
             tiers,
         });
-        const res = this.files.writeFile({ path: CALLCENTER_PATH, content: updated, etag: etag ?? read.etag });
+        const res = this.files.writeFile({
+            path: CALLCENTER_PATH,
+            content: updated,
+            etag: etag ?? read.etag,
+        });
         this.meta.deleteQueueMeta(fullName);
         const m = this.meta.get().meta;
         this.dialplan.ensureDefaultIncludesDirEarly();
@@ -158,7 +169,7 @@ let QueuesService = class QueuesService {
         return res;
     }
     buildQueueNode(fullName, input) {
-        const param = (n, v) => (v == null ? null : { '@_name': n, '@_value': v });
+        const param = (n, v) => v == null ? null : { '@_name': n, '@_value': v };
         const params = [
             param('strategy', input.strategy ?? 'ring-all'),
             param('moh-sound', input.mohSound ?? 'local_stream://moh'),
@@ -241,6 +252,33 @@ exports.QueuesService = QueuesService = __decorate([
         pbx_meta_service_1.PbxMetaService,
         dialplan_service_1.DialplanService])
 ], QueuesService);
+function assertQueueTimeoutDestination(dest) {
+    const type = String(dest?.type ?? '').trim();
+    const target = String(dest?.target ?? '').trim();
+    if (!type)
+        throw new common_1.BadRequestException('timeoutDestination.type is required');
+    if (type === 'terminate')
+        return;
+    if (type === 'extension' || type === 'timeCondition') {
+        if (!/^\d+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid ${type} target "${target}". Expected digits only.`);
+        }
+        return;
+    }
+    if (type === 'queue') {
+        if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid queue target "${target}". Expected format like "queue1@default".`);
+        }
+        return;
+    }
+    if (type === 'ivr') {
+        if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+            throw new common_1.BadRequestException(`Invalid IVR target "${target}".`);
+        }
+        return;
+    }
+    throw new common_1.BadRequestException(`Unknown timeoutDestination.type "${type}"`);
+}
 function esc(s) {
     return String(s)
         .replace(/&/g, '&amp;')

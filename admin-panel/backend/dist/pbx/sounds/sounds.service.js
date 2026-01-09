@@ -51,10 +51,13 @@ let SoundsService = class SoundsService {
     baseDir;
     fsSoundDir;
     constructor(config) {
-        const configuredFsSounds = config.get('FS_SOUND_DIR') ?? config.get('FS_SOUNDS_DIR') ?? undefined;
+        const configuredFsSounds = config.get('FS_SOUND_DIR') ??
+            config.get('FS_SOUNDS_DIR') ??
+            undefined;
         const configuredRepoSounds = config.get('SOUNDS_DIR') ?? undefined;
         const preferFs = configuredFsSounds ?? '/usr/share/freeswitch/sounds';
-        const preferRepo = configuredRepoSounds ?? path.resolve(process.cwd(), '../../freeswitch-sounds');
+        const preferRepo = configuredRepoSounds ??
+            path.resolve(process.cwd(), '../../freeswitch-sounds');
         this.fsSoundDir = configuredFsSounds ?? '/usr/share/freeswitch/sounds';
         this.baseDir = fs.existsSync(preferFs) ? preferFs : preferRepo;
     }
@@ -109,7 +112,10 @@ let SoundsService = class SoundsService {
         return dir;
     }
     ensureDir(relDir) {
-        const clean = String(relDir ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
+        const clean = String(relDir ?? '')
+            .trim()
+            .replace(/\\/g, '/')
+            .replace(/^\/+/, '');
         if (!clean)
             throw new common_1.BadRequestException('Invalid dir');
         if (clean.includes('..'))

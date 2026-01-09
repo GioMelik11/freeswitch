@@ -47,5 +47,3 @@ import { FreeswitchController } from './freeswitch/freeswitch.controller';
   ],
 })
 export class PbxModule {}
-
-

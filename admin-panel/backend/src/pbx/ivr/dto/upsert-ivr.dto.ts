@@ -1,65 +1,70 @@
-import { IsArray, IsIn, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class IvrEntryDto {
-    @IsString()
-    digits!: string;
+  @IsString()
+  digits!: string;
 
-    @IsIn(['transfer', 'queue', 'ivr', 'app'])
-    type!: 'transfer' | 'queue' | 'ivr' | 'app';
+  @IsIn(['transfer', 'queue', 'ivr', 'app'])
+  type!: 'transfer' | 'queue' | 'ivr' | 'app';
 
-    @IsString()
-    target!: string;
+  @IsString()
+  target!: string;
 }
 
 export class UpsertIvrDto {
-    @Matches(/^[a-zA-Z0-9_-]+$/)
-    name!: string;
+  @Matches(/^[a-zA-Z0-9_-]+$/)
+  name!: string;
 
-    @IsOptional()
-    @IsString()
-    greetLong?: string;
+  @IsOptional()
+  @IsString()
+  greetLong?: string;
 
-    @IsOptional()
-    @IsString()
-    greetShort?: string;
+  @IsOptional()
+  @IsString()
+  greetShort?: string;
 
-    @IsOptional()
-    @IsString()
-    invalidSound?: string;
+  @IsOptional()
+  @IsString()
+  invalidSound?: string;
 
-    @IsOptional()
-    @IsString()
-    exitSound?: string;
+  @IsOptional()
+  @IsString()
+  exitSound?: string;
 
-    @IsOptional()
-    @IsString()
-    timeout?: string;
+  @IsOptional()
+  @IsString()
+  timeout?: string;
 
-    @IsOptional()
-    @IsString()
-    interDigitTimeout?: string;
+  @IsOptional()
+  @IsString()
+  interDigitTimeout?: string;
 
-    @IsOptional()
-    @IsString()
-    maxFailures?: string;
+  @IsOptional()
+  @IsString()
+  maxFailures?: string;
 
-    @IsOptional()
-    @IsString()
-    maxTimeouts?: string;
+  @IsOptional()
+  @IsString()
+  maxTimeouts?: string;
 
-    @IsOptional()
-    @IsString()
-    digitLen?: string;
+  @IsOptional()
+  @IsString()
+  digitLen?: string;
 
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => IvrEntryDto)
-    entries!: IvrEntryDto[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IvrEntryDto)
+  entries!: IvrEntryDto[];
 
-    @IsOptional()
-    @IsString()
-    etag?: string;
+  @IsOptional()
+  @IsString()
+  etag?: string;
 }
-
-

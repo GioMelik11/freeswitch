@@ -13,7 +13,7 @@ export class TrunksService {
     private readonly files: FilesService,
     private readonly meta: PbxMetaService,
     private readonly dialplan: DialplanService,
-  ) { }
+  ) {}
 
   list(): Trunk[] {
     const m = this.meta.get().meta;
@@ -49,10 +49,18 @@ export class TrunksService {
     this.assertName(input.name);
     const filePath = `${TRUNK_DIR}/${input.name}.xml`;
     const xml = this.render(input);
-    const res = this.files.writeFile({ path: filePath, content: xml, etag: input.etag });
+    const res = this.files.writeFile({
+      path: filePath,
+      content: xml,
+      etag: input.etag,
+    });
 
     // Persist admin-panel-only fields and regenerate inbound dialplan.
-    if (input.inboundDestination || input.outgoingDefault || input.prefixRules) {
+    if (
+      input.inboundDestination ||
+      input.outgoingDefault ||
+      input.prefixRules
+    ) {
       this.meta.upsertTrunkMeta(input.name, {
         inboundDestination: input.inboundDestination,
         outgoingDefault: input.outgoingDefault,
@@ -131,7 +139,8 @@ export class TrunksService {
   }
 
   private assertName(name: string) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(name)) throw new BadRequestException('Invalid trunk name');
+    if (!/^[a-zA-Z0-9_-]+$/.test(name))
+      throw new BadRequestException('Invalid trunk name');
   }
 
   private render(t: {
@@ -149,7 +158,9 @@ export class TrunksService {
     const lines: string[] = [];
     const push = (n: string, v: string | undefined) => {
       if (v == null || v === '') return;
-      lines.push(`        <param name="${escapeXml(n)}" value="${escapeXml(v)}"/>`);
+      lines.push(
+        `        <param name="${escapeXml(n)}" value="${escapeXml(v)}"/>`,
+      );
     };
 
     lines.push('<include>');
@@ -184,5 +195,3 @@ function escapeXml(s: string) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
-
-

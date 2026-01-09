@@ -8,5 +8,3 @@ import { PbxMetaService } from './pbx-meta.service';
   exports: [PbxMetaService],
 })
 export class PbxMetaModule {}
-
-

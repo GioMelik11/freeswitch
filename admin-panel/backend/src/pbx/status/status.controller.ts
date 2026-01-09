@@ -11,14 +11,28 @@ export class StatusController {
   async gateways() {
     // Example line contains: "sip_trunk_provider   ...   REGED"
     const res = await this.esl.api('sofia status gateways');
-    const lines = res.body.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = res.body
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
     const out: Record<string, { status: string; raw: string }> = {};
     for (const line of lines) {
       // first token is gateway name
       const parts = line.split(/\s+/);
       const name = parts[0];
       if (!name || name === 'Name' || name === 'Gateway') continue;
-      const status = parts.find((p) => ['REGED', 'NOREG', 'UNREGED', 'TRYING', 'FAIL_WAIT', 'DOWN', 'UP'].includes(p)) ?? 'UNKNOWN';
+      const status =
+        parts.find((p) =>
+          [
+            'REGED',
+            'NOREG',
+            'UNREGED',
+            'TRYING',
+            'FAIL_WAIT',
+            'DOWN',
+            'UP',
+          ].includes(p),
+        ) ?? 'UNKNOWN';
       out[name] = { status, raw: line };
     }
     return out;
@@ -35,7 +49,10 @@ export class StatusController {
     // "sofia status profile internal reg" returns a table with user in column 1.
     const res = await this.esl.api('sofia status profile internal reg');
     const lines = res.body.split(/\r?\n/);
-    const out: Record<string, { contact?: string; expires?: string; raw: string }> = {};
+    const out: Record<
+      string,
+      { contact?: string; expires?: string; raw: string }
+    > = {};
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
@@ -49,5 +66,3 @@ export class StatusController {
     return out;
   }
 }
-
-

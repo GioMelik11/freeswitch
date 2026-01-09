@@ -6,17 +6,15 @@ import { FreeswitchService } from './freeswitch.service';
 @UseGuards(JwtAuthGuard)
 @Controller('freeswitch')
 export class FreeswitchController {
-    constructor(private readonly fs: FreeswitchService) { }
+  constructor(private readonly fs: FreeswitchService) {}
 
-    @Get('modules')
-    listModules() {
-        return this.fs.listModules();
-    }
+  @Get('modules')
+  listModules() {
+    return this.fs.listModules();
+  }
 
-    @Post('modules/set')
-    setModule(@Body() dto: SetModuleDto) {
-        return this.fs.setModule(dto);
-    }
+  @Post('modules/set')
+  setModule(@Body() dto: SetModuleDto) {
+    return this.fs.setModule(dto);
+  }
 }
-
-

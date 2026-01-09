@@ -29,5 +29,3 @@ export class FreeswitchController {
     return { ok: results.every((r) => r.ok), results };
   }
 }
-
-

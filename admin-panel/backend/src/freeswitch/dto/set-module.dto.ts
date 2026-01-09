@@ -11,5 +11,3 @@ export class SetModuleDto {
   @IsString()
   etag?: string;
 }
-
-

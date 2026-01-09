@@ -26,7 +26,10 @@ let ExtensionsService = class ExtensionsService {
         this.meta = meta;
     }
     list() {
-        const files = this.files.listFiles(EXT_DIR, { regex: /^\d+\.xml$/i, extensions: ['.xml'] });
+        const files = this.files.listFiles(EXT_DIR, {
+            regex: /^\d+\.xml$/i,
+            extensions: ['.xml'],
+        });
         return files
             .map((f) => this.getByPath(f.path))
             .sort((a, b) => Number(a.id) - Number(b.id));
@@ -58,11 +61,21 @@ let ExtensionsService = class ExtensionsService {
             callerIdName: String(getVar('effective_caller_id_name') ?? `Extension ${id}`),
             callerIdNumber: String(getVar('effective_caller_id_number') ?? id),
             callgroup: getVar('callgroup') ? String(getVar('callgroup')) : undefined,
-            outgoingSound: getVar('adminpanel_outgoing_sound') ? String(getVar('adminpanel_outgoing_sound')) : undefined,
-            outgoingIvr: getVar('adminpanel_outgoing_ivr') ? String(getVar('adminpanel_outgoing_ivr')) : undefined,
-            forwardMobile: getVar('adminpanel_forward_mobile') ? String(getVar('adminpanel_forward_mobile')) : undefined,
-            aiEnabled: String(getVar('adminpanel_ai_enabled') ?? 'false') === 'true' ? true : undefined,
-            aiServiceId: getVar('adminpanel_ai_service_id') ? String(getVar('adminpanel_ai_service_id')) : undefined,
+            outgoingSound: getVar('adminpanel_outgoing_sound')
+                ? String(getVar('adminpanel_outgoing_sound'))
+                : undefined,
+            outgoingIvr: getVar('adminpanel_outgoing_ivr')
+                ? String(getVar('adminpanel_outgoing_ivr'))
+                : undefined,
+            forwardMobile: getVar('adminpanel_forward_mobile')
+                ? String(getVar('adminpanel_forward_mobile'))
+                : undefined,
+            aiEnabled: String(getVar('adminpanel_ai_enabled') ?? 'false') === 'true'
+                ? true
+                : undefined,
+            aiServiceId: getVar('adminpanel_ai_service_id')
+                ? String(getVar('adminpanel_ai_service_id'))
+                : undefined,
         };
     }
     upsert(input) {
@@ -90,7 +103,11 @@ let ExtensionsService = class ExtensionsService {
             aiEnabled: input.aiEnabled,
             aiServiceId: input.aiServiceId,
         });
-        const res = this.files.writeFile({ path: filePath, content: xml, etag: input.etag });
+        const res = this.files.writeFile({
+            path: filePath,
+            content: xml,
+            etag: input.etag,
+        });
         try {
             const list = this.list();
             if (this.dialplan?.ensureDefaultIncludesDirEarly)
@@ -105,8 +122,9 @@ let ExtensionsService = class ExtensionsService {
                         continue;
                     services.set(String(s.id), String(s.socketUrl));
                 }
-                const defaultUrl = (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-                    (services.size ? [...services.values()][0] : '');
+                const defaultUrl = (m.defaultAiServiceId
+                    ? (services.get(String(m.defaultAiServiceId)) ?? '')
+                    : '') || (services.size ? [...services.values()][0] : '');
                 this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
             }
         }
@@ -133,8 +151,9 @@ let ExtensionsService = class ExtensionsService {
                         continue;
                     services.set(String(s.id), String(s.socketUrl));
                 }
-                const defaultUrl = (m.defaultAiServiceId ? services.get(String(m.defaultAiServiceId)) ?? '' : '') ||
-                    (services.size ? [...services.values()][0] : '');
+                const defaultUrl = (m.defaultAiServiceId
+                    ? (services.get(String(m.defaultAiServiceId)) ?? '')
+                    : '') || (services.size ? [...services.values()][0] : '');
                 this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
             }
         }

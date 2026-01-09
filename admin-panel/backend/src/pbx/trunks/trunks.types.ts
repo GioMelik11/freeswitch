@@ -14,5 +14,3 @@ export type Trunk = {
   outgoingDefault?: any;
   prefixRules?: any[];
 };
-
-

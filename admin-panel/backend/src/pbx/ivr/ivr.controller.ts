@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Post } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { UpsertIvrDto } from './dto/upsert-ivr.dto';
@@ -24,5 +32,3 @@ export class IvrController {
     return this.svc.delete(name, etag);
   }
 }
-
-

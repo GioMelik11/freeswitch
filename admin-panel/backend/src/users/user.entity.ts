@@ -1,4 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export type UserRole = 'admin' | 'operator';
 
@@ -22,5 +28,3 @@ export class User {
   @UpdateDateColumn()
   updatedAt!: Date;
 }
-
-

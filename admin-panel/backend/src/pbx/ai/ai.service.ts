@@ -14,7 +14,8 @@ export class AiService {
 
   getSettings() {
     const read = this.files.readFile(VARS_PATH);
-    const audioStreamUrl = getPreProcessVar(read.content, 'audio_stream_url') ?? '';
+    const audioStreamUrl =
+      getPreProcessVar(read.content, 'audio_stream_url') ?? '';
     return { etag: read.etag, audioStreamUrl };
   }
 
@@ -23,7 +24,11 @@ export class AiService {
     if (!url) throw new BadRequestException('audioStreamUrl is required');
     const read = this.files.readFile(VARS_PATH);
     const next = setPreProcessVar(read.content, 'audio_stream_url', url);
-    return this.files.writeFile({ path: VARS_PATH, content: next, etag: input.etag ?? read.etag });
+    return this.files.writeFile({
+      path: VARS_PATH,
+      content: next,
+      etag: input.etag ?? read.etag,
+    });
   }
 
   listServices() {
@@ -34,7 +39,11 @@ export class AiService {
       socketUrl: String(s.socketUrl ?? ''),
       enabled: s.enabled !== false,
     }));
-    return { etag: cur.etag, services, defaultAiServiceId: cur.meta.defaultAiServiceId ?? null };
+    return {
+      etag: cur.etag,
+      services,
+      defaultAiServiceId: cur.meta.defaultAiServiceId ?? null,
+    };
   }
 
   upsertService(input: {
@@ -48,11 +57,16 @@ export class AiService {
     const meta = cur.meta;
     const id = (input.id && String(input.id)) || crypto.randomUUID();
     const name = String(input.name ?? '').trim();
-    const socketUrl = String(input.socketUrl ?? input.audioStreamUrl ?? '').trim();
+    const socketUrl = String(
+      input.socketUrl ?? input.audioStreamUrl ?? '',
+    ).trim();
     if (!name) throw new BadRequestException('name is required');
-    if (!socketUrl) throw new BadRequestException('audio_stream_url is required');
+    if (!socketUrl)
+      throw new BadRequestException('audio_stream_url is required');
     if (!/^wss?:\/\//i.test(socketUrl))
-      throw new BadRequestException('audio_stream_url must start with ws:// or wss://');
+      throw new BadRequestException(
+        'audio_stream_url must start with ws:// or wss://',
+      );
 
     const list = meta.aiServices ?? [];
     const idx = list.findIndex((x: any) => String(x.id) === id);
@@ -72,15 +86,20 @@ export class AiService {
   deleteService(id: string) {
     const cur = this.meta.get();
     const meta = cur.meta;
-    meta.aiServices = (meta.aiServices ?? []).filter((s: any) => String(s.id) !== String(id));
-    if (meta.defaultAiServiceId === id) meta.defaultAiServiceId = meta.aiServices[0]?.id;
+    meta.aiServices = (meta.aiServices ?? []).filter(
+      (s: any) => String(s.id) !== String(id),
+    );
+    if (meta.defaultAiServiceId === id)
+      meta.defaultAiServiceId = meta.aiServices[0]?.id;
     return this.meta.write(meta, cur.etag);
   }
 
   setDefaultService(id: string) {
     const cur = this.meta.get();
     const meta = cur.meta;
-    const exists = (meta.aiServices ?? []).some((s: any) => String(s.id) === String(id));
+    const exists = (meta.aiServices ?? []).some(
+      (s: any) => String(s.id) === String(id),
+    );
     if (!exists) throw new BadRequestException('Unknown service id');
     meta.defaultAiServiceId = id;
     return this.meta.write(meta, cur.etag);
@@ -125,5 +144,3 @@ function escapeXmlAttr(s: string) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 }
-
-

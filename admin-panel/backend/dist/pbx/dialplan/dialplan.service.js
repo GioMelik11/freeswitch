@@ -38,9 +38,9 @@ let DialplanService = class DialplanService {
         const read = this.files.readFile(rel);
         if (read.content.includes('Admin Panel includes (time conditions, etc.)') &&
             read.content.includes('X-PRE-PROCESS cmd="include" data="default/*.xml"')) {
-            const occurrences = (read.content.match(/X-PRE-PROCESS cmd="include" data="default\/\*\.xml"/g) || [])
-                .length;
-            if (occurrences >= 1 && read.content.indexOf('X-PRE-PROCESS cmd="include" data="default/*.xml"') < 800)
+            const occurrences = (read.content.match(/X-PRE-PROCESS cmd="include" data="default\/\*\.xml"/g) || []).length;
+            if (occurrences >= 1 &&
+                read.content.indexOf('X-PRE-PROCESS cmd="include" data="default/*.xml"') < 800)
                 return;
         }
         let content = read.content.replace(/\s*<!-- Admin Panel includes[\s\S]*?<X-PRE-PROCESS cmd="include" data="default\/\*\.xml"\/>\s*/m, '\n');
@@ -112,7 +112,9 @@ let DialplanService = class DialplanService {
             const qname = esc(queueFullName);
             const dn = esc(q.extensionNumber);
             const dest = q.timeoutDestination;
-            const postLuaArgs = dest ? `${escLuaArg(dest.type)} ${escLuaArg(dest.target ?? '')}` : '';
+            const postLuaArgs = dest
+                ? `${escLuaArg(dest.type)} ${escLuaArg(dest.target ?? '')}`
+                : '';
             extXml.push(`    <extension name="adminpanel_queue_${qname}">\n` +
                 `      <condition field="destination_number" expression="^${dn}$">\n` +
                 `        <action application="answer"/>\n` +
@@ -196,8 +198,12 @@ let DialplanService = class DialplanService {
                 continue;
             if (e.aiEnabled) {
                 const sid = String(e.aiServiceId ?? '').trim();
-                const url = sid ? ai?.services?.get(sid) ?? '' : ai?.defaultUrl ?? '';
-                const setUrlLine = url ? `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n` : '';
+                const url = sid
+                    ? (ai?.services?.get(sid) ?? '')
+                    : (ai?.defaultUrl ?? '');
+                const setUrlLine = url
+                    ? `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`
+                    : '';
                 extXml.push(`    <extension name="adminpanel_ai_${esc(id)}">\n` +
                     `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
                     `        <action application="answer"/>\n` +
@@ -288,6 +294,7 @@ exports.DialplanService = DialplanService = __decorate([
     __metadata("design:paramtypes", [files_service_1.FilesService])
 ], DialplanService);
 function renderDestination(dest) {
+    assertDestination(dest);
     switch (dest.type) {
         case 'terminate':
             return `        <action application="hangup" data="NORMAL_CLEARING"/>\n`;
@@ -302,6 +309,34 @@ function renderDestination(dest) {
                 `        <action application="ivr" data="${esc(dest.target)}"/>\n`);
         case 'timeCondition':
             return `        <action application="transfer" data="${esc(dest.target)} XML default"/>\n`;
+    }
+}
+function assertDestination(dest) {
+    switch (dest.type) {
+        case 'terminate':
+            return;
+        case 'extension':
+        case 'timeCondition': {
+            const target = String(dest.target ?? '').trim();
+            if (!/^\d+$/.test(target)) {
+                throw new common_1.BadRequestException(`Invalid ${dest.type} target "${target}". Expected digits only.`);
+            }
+            return;
+        }
+        case 'queue': {
+            const target = String(dest.target ?? '').trim();
+            if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+                throw new common_1.BadRequestException(`Invalid queue target "${target}". Expected format like "queue1@default".`);
+            }
+            return;
+        }
+        case 'ivr': {
+            const target = String(dest.target ?? '').trim();
+            if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+                throw new common_1.BadRequestException(`Invalid IVR target "${target}".`);
+            }
+            return;
+        }
     }
 }
 function esc(s) {

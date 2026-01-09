@@ -134,7 +134,10 @@ let EslService = class EslService {
                     if (idx === -1)
                         return;
                     const headerRaw = buf.slice(0, idx).toString('utf8');
-                    const lines = headerRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+                    const lines = headerRaw
+                        .split(/\r?\n/)
+                        .map((l) => l.trim())
+                        .filter(Boolean);
                     headers = {};
                     for (const line of lines) {
                         const s = line.indexOf(':');

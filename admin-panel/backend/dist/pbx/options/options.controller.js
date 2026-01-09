@@ -64,7 +64,11 @@ let OptionsController = class OptionsController {
         const m = this.meta.get().meta;
         const aiServices = (m.aiServices ?? [])
             .filter((s) => s && s.enabled !== false && s.id && s.socketUrl)
-            .map((s) => ({ id: String(s.id), name: String(s.name ?? s.id), socketUrl: String(s.socketUrl) }));
+            .map((s) => ({
+            id: String(s.id),
+            name: String(s.name ?? s.id),
+            socketUrl: String(s.socketUrl),
+        }));
         return {
             extensions: ext,
             queues: q,
@@ -85,7 +89,9 @@ let OptionsController = class OptionsController {
             const cfg = obj?.configuration;
             const dirs = cfg?.directory;
             const arr = Array.isArray(dirs) ? dirs : dirs ? [dirs] : [];
-            const names = arr.map((d) => String(d?.['@_name'] ?? '')).filter(Boolean);
+            const names = arr
+                .map((d) => String(d?.['@_name'] ?? ''))
+                .filter(Boolean);
             const out = new Set();
             out.add('local_stream://moh');
             for (const n of names)

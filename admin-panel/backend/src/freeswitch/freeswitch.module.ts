@@ -9,5 +9,3 @@ import { FreeswitchService } from './freeswitch.service';
   providers: [FreeswitchService],
 })
 export class FreeswitchModule {}
-
-

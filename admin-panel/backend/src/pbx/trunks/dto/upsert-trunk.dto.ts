@@ -1,4 +1,10 @@
-import { IsArray, IsBoolean, IsOptional, IsString, Matches } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 
 class DestDto {
   @IsString()
@@ -92,5 +98,3 @@ export class UpsertTrunkDto {
   @IsString()
   etag?: string;
 }
-
-

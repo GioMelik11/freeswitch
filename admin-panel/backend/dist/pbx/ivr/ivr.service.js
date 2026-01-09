@@ -51,7 +51,11 @@ let IvrService = class IvrService {
         if (!found)
             nextMenus.push(renderedMenu);
         const xml = this.renderIvrConf(nextMenus);
-        return this.files.writeFile({ path: IVR_CONF_PATH, content: xml, etag: input.etag ?? read.etag });
+        return this.files.writeFile({
+            path: IVR_CONF_PATH,
+            content: xml,
+            etag: input.etag ?? read.etag,
+        });
     }
     delete(name, etag) {
         const read = this.files.readFile(IVR_CONF_PATH);
@@ -61,7 +65,11 @@ let IvrService = class IvrService {
             throw new common_1.BadRequestException('Invalid ivr.conf.xml');
         const menus = (0, xml_1.asArray)(cfg?.menus?.menu).filter((m) => String(m?.['@_name'] ?? '') !== name);
         const xml = this.renderIvrConf(menus);
-        return this.files.writeFile({ path: IVR_CONF_PATH, content: xml, etag: etag ?? read.etag });
+        return this.files.writeFile({
+            path: IVR_CONF_PATH,
+            content: xml,
+            etag: etag ?? read.etag,
+        });
     }
     mapMenu(m) {
         const attrs = m ?? {};
@@ -70,15 +78,27 @@ let IvrService = class IvrService {
             const action = String(e?.['@_action'] ?? 'menu-exec-app');
             const param = String(e?.['@_param'] ?? '');
             if (action === 'menu-exec-app' && param.startsWith('transfer ')) {
-                return { digits, type: 'transfer', target: param.replace(/^transfer\s+/, '') };
+                return {
+                    digits,
+                    type: 'transfer',
+                    target: param.replace(/^transfer\s+/, ''),
+                };
             }
             if (action === 'menu-exec-app' && param.startsWith('callcenter ')) {
-                return { digits, type: 'queue', target: param.replace(/^callcenter\s+/, '') };
+                return {
+                    digits,
+                    type: 'queue',
+                    target: param.replace(/^callcenter\s+/, ''),
+                };
             }
             if (action === 'menu-sub') {
                 return { digits, type: 'ivr', target: param };
             }
-            return { digits, type: 'app', target: `${action} ${param}`.trim() };
+            return {
+                digits,
+                type: 'app',
+                target: `${action} ${param}`.trim(),
+            };
         });
         return {
             name: String(attrs['@_name'] ?? ''),
@@ -115,18 +135,53 @@ let IvrService = class IvrService {
         const entry = (input.entries ?? []).map((e) => {
             const digits = String(e.digits ?? '');
             const type = e.type;
+            if (!/^\d+$/.test(digits)) {
+                throw new common_1.BadRequestException(`Invalid DTMF digits "${digits}". Digits must be numeric.`);
+            }
+            const digitLen = String(input.digitLen ?? attr['@_digit-len'] ?? '1').trim();
+            if (/^\d+$/.test(digitLen) && digits.length !== Number(digitLen)) {
+                throw new common_1.BadRequestException(`DTMF "${digits}" must be length ${digitLen}.`);
+            }
             if (type === 'transfer') {
-                return { '@_action': 'menu-exec-app', '@_digits': digits, '@_param': `transfer ${e.target}` };
+                const target = String(e.target ?? '').trim();
+                if (!/^\d+\s+XML\s+\w+$/.test(target)) {
+                    throw new common_1.BadRequestException(`Invalid transfer target "${target}". Expected format like "1001 XML default".`);
+                }
+                return {
+                    '@_action': 'menu-exec-app',
+                    '@_digits': digits,
+                    '@_param': `transfer ${target}`,
+                };
             }
             if (type === 'queue') {
-                return { '@_action': 'menu-exec-app', '@_digits': digits, '@_param': `callcenter ${e.target}` };
+                const target = String(e.target ?? '').trim();
+                if (!/^[^\s@]+@[^\s@]+$/.test(target)) {
+                    throw new common_1.BadRequestException(`Invalid queue target "${target}". Expected format like "queue1@default".`);
+                }
+                return {
+                    '@_action': 'menu-exec-app',
+                    '@_digits': digits,
+                    '@_param': `callcenter ${target}`,
+                };
             }
             if (type === 'ivr') {
-                return { '@_action': 'menu-sub', '@_digits': digits, '@_param': e.target };
+                const target = String(e.target ?? '').trim();
+                if (!/^[a-zA-Z0-9_-]+$/.test(target)) {
+                    throw new common_1.BadRequestException(`Invalid IVR submenu target "${target}".`);
+                }
+                return {
+                    '@_action': 'menu-sub',
+                    '@_digits': digits,
+                    '@_param': target,
+                };
             }
             const raw = String(e.target ?? '');
             const [action, ...rest] = raw.split(' ');
-            return { '@_action': action || 'menu-exec-app', '@_digits': digits, '@_param': rest.join(' ') };
+            return {
+                '@_action': action || 'menu-exec-app',
+                '@_digits': digits,
+                '@_param': rest.join(' '),
+            };
         });
         return { ...attr, entry };
     }
