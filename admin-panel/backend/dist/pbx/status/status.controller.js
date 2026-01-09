@@ -30,9 +30,12 @@ let StatusController = class StatusController {
         const out = {};
         for (const line of lines) {
             const parts = line.split(/\s+/);
-            const name = parts[0];
-            if (!name || name === 'Name' || name === 'Gateway')
+            const name0 = parts[0];
+            if (!name0)
                 continue;
+            if (name0 === 'Name' || name0 === 'Gateway' || name0 === 'Profile::Gateway-Name')
+                continue;
+            const name = name0.includes('::') ? name0.split('::').pop() : name0;
             const status = parts.find((p) => [
                 'REGED',
                 'NOREG',
