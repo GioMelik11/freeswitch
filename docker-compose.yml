@@ -8,6 +8,8 @@ services:
     volumes:
       - ./freeswitch:/usr/local/freeswitch/etc/freeswitch
       - ./freeswitch-sounds:/usr/share/freeswitch/sounds
+      # Compatibility mount: many FreeSWITCH images resolve prompts via sound_prefix at /usr/local/freeswitch/share/freeswitch/sounds
+      - ./freeswitch-sounds:/usr/local/freeswitch/share/freeswitch/sounds
     # Port mappings are ignored in host mode, so they are removed
     environment:
       - TZ=Asia/Tbilisi

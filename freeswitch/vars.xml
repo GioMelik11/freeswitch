@@ -16,7 +16,7 @@
 
   <!-- RTP Port Range -->
   <X-PRE-PROCESS cmd="set" data="rtp_start_port=10000"/>
-  <X-PRE-PROCESS cmd="set" data="rtp_end_port=20000"/>
+  <X-PRE-PROCESS cmd="set" data="rtp_end_port=10005"/>
 
   <!-- RTP/SIP external IP settings
        IMPORTANT: external_* MUST be a publicly reachable IP (or auto-nat if it resolves correctly).
@@ -59,6 +59,15 @@
   <!-- Sound files settings -->
   <X-PRE-PROCESS cmd="set" data="SOUND_RATES=8000,16000,22050,32000,44100,48000"/>
   <X-PRE-PROCESS cmd="set" data="SOUND_TYPES=wav,mp3"/>
+
+  <!--
+      Sound path fix (Docker/WSL)
+      The container image defaults sound_prefix/sounds_dir to /usr/local/freeswitch/share/freeswitch/sounds,
+      but this project bind-mounts sounds to /usr/share/freeswitch/sounds.
+      Without these overrides, IVR prompts like "ivr/incoming.wav" won't be found.
+  -->
+  <X-PRE-PROCESS cmd="set" data="sounds_dir=/usr/share/freeswitch/sounds"/>
+  <X-PRE-PROCESS cmd="set" data="sound_prefix=/usr/share/freeswitch/sounds"/>
 
   <!-- mod_audio_stream WebSocket endpoint -->
   <!-- NOTE: FreeSWITCH runs in host-network mode; Docker port publishing may not proxy WS correctly in some setups.
