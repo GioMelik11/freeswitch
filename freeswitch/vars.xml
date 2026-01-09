@@ -69,16 +69,6 @@
   <X-PRE-PROCESS cmd="set" data="sounds_dir=/usr/share/freeswitch/sounds"/>
   <X-PRE-PROCESS cmd="set" data="sound_prefix=/usr/share/freeswitch/sounds"/>
 
-  <!--
-      mod_audio_stream test server base URL.
-      Used by freeswitch/dialplan/default/99_adminpanel_audio_stream_test.xml as $${audio_stream_test_url}.
-
-      Docker Desktop (Windows/Mac): host.docker.internal is typically the right target *if* you publish 9096.
-      Linux: you may prefer ws://127.0.0.1:9096 (host networking) or ws://<backend-container-ip>:9096.
-  -->
-  <!-- In WSL Docker with network_mode: host, FreeSWITCH can reach services on the WSL host via 127.0.0.1 -->
-  <X-PRE-PROCESS cmd="set" data="audio_stream_test_url=ws://127.0.0.1:9096"/>
-
 </include>
 
 

@@ -58,48 +58,6 @@ services:
         node dist/main.js
       "
 
-  # Standalone WS server for mod_audio_stream testing (echo + wav streaming) - runs on the WSL host network.
-  ws-audio-test:
-    image: node:20-bookworm-slim
-    container_name: ws-audio-test
-    working_dir: /app
-    restart: unless-stopped
-    network_mode: "host"
-    environment:
-      - PORT=9096
-      - FS_SOUND_DIR=/usr/share/freeswitch/sounds
-      # Optional raw streaming settings (used by /raw):
-      # - RAW_FILE=raw/incoming.s16le
-      # - RAW_RATE=8000
-    volumes:
-      - ./ws-audio-test:/app
-      - ws_audio_test_node_modules:/app/node_modules
-      - ./freeswitch-sounds:/usr/share/freeswitch/sounds:ro
-    command: >
-      sh -lc "
-        if [ ! -d node_modules ] || [ ! -f node_modules/.deps_installed ]; then
-          echo 'Installing ws-audio-test dependencies (first run only)...';
-          npm install --omit=dev && touch node_modules/.deps_installed;
-        fi;
-        node server.js
-      "
-
-  # Standalone TCP server compatible with freeswitch/freeswitch/scripts/audio_socket_client.lua
-  # (echoes PCM16 frames back so you should hear echo on the call).
-  tcp-audio-test:
-    image: node:20-bookworm-slim
-    container_name: tcp-audio-test
-    working_dir: /app
-    restart: unless-stopped
-    network_mode: "host"
-    environment:
-      - HOST=0.0.0.0
-      - PORT=9098
-    volumes:
-      - ./tcp-audio-test:/app:ro
-    command: >
-      sh -lc "node server.js"
-
   fs-admin-frontend:
     image: nginx:alpine
     container_name: fs-admin-frontend
@@ -111,5 +69,4 @@ services:
       - ./admin-panel/frontend/nginx.default.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
-  fs_admin_backend_node_modules:
-  ws_audio_test_node_modules:
+  fs_admin_backend_node_modules: # (no extra volumes)
