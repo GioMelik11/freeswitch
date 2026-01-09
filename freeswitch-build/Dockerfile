@@ -107,7 +107,10 @@ RUN make install
 # Requires freeswitch.pc available under ${FS_INSTALL_PREFIX}/lib/pkgconfig
 ENV PKG_CONFIG_PATH=${FS_INSTALL_PREFIX}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig
 WORKDIR /usr/src
-RUN git clone https://github.com/amigniter/mod_audio_stream.git mod_audio_stream && \
+#
+# Use the sptmru fork because it documents the "streamAudio" playback message format (base64 audio in JSON):
+# https://github.com/sptmru/freeswitch_mod_audio_stream
+RUN git clone https://github.com/sptmru/freeswitch_mod_audio_stream.git mod_audio_stream && \
     cd mod_audio_stream && \
     git submodule update --init --recursive && \
     mkdir -p build && cd build && \

@@ -34,7 +34,13 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 return;
             }
 
+            // eslint-disable-next-line no-console
+            console.log(
+                `[ws-echo] connected url=${url} remote=${req.socket?.remoteAddress ?? 'unknown'}:${req.socket?.remotePort ?? 'unknown'}`,
+            );
+
             let sampleRate = 8000;
+            let binaryFrames = 0;
 
             ws.on('message', (data, isBinary) => {
                 // First message can be metadata text. We optionally parse sampleRate from it.
@@ -44,6 +50,8 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                         const j = JSON.parse(s);
                         const sr = Number(j?.sampleRate ?? j?.rate ?? j?.data?.sampleRate);
                         if (sr === 8000 || sr === 16000) sampleRate = sr;
+                        // eslint-disable-next-line no-console
+                        console.log(`[ws-echo] metadata sampleRate=${sampleRate}`);
                     } catch {
                         // ignore
                     }
@@ -52,6 +60,11 @@ export class AudioStreamWsEchoService implements OnModuleInit {
 
                 try {
                     const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as any);
+                    binaryFrames += 1;
+                    if (binaryFrames === 1 || binaryFrames % 100 === 0) {
+                        // eslint-disable-next-line no-console
+                        console.log(`[ws-echo] rx frame#${binaryFrames} bytes=${buf.length} sampleRate=${sampleRate}`);
+                    }
                     const msg = {
                         type: 'streamAudio',
                         data: {
@@ -64,6 +77,11 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 } catch {
                     // ignore
                 }
+            });
+
+            ws.on('close', (code, reason) => {
+                // eslint-disable-next-line no-console
+                console.log(`[ws-echo] closed code=${code} reason=${String(reason)} frames=${binaryFrames}`);
             });
         });
     }
