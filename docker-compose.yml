@@ -26,6 +26,9 @@ services:
       - CORS_ORIGIN=http://localhost:4200
       - DB_PATH=/data/admin.sqlite
       - BACKUPS_DIR=/data/backups
+      # Disable built-in mod_audio_stream *test* server in admin-panel backend to avoid port conflicts.
+      # We'll run a dedicated ws-audio-test service on :9096 instead.
+      - AUDIO_STREAM_TEST_ENABLED=false
       # use the same path FreeSWITCH uses (mounted from repo-root ./freeswitch)
       - FS_CONF_DIR=/usr/local/freeswitch/etc/freeswitch
       # sounds directory inside container (mounted from repo-root ./freeswitch-sounds)
@@ -55,6 +58,29 @@ services:
         node dist/main.js
       "
 
+  # Standalone WS server for mod_audio_stream testing (echo + wav streaming) - runs on the WSL host network.
+  ws-audio-test:
+    image: node:20-bookworm-slim
+    container_name: ws-audio-test
+    working_dir: /app
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      - PORT=9096
+      - FS_SOUND_DIR=/usr/share/freeswitch/sounds
+    volumes:
+      - ./ws-audio-test:/app
+      - ws_audio_test_node_modules:/app/node_modules
+      - ./freeswitch-sounds:/usr/share/freeswitch/sounds:ro
+    command: >
+      sh -lc "
+        if [ ! -d node_modules ] || [ ! -f node_modules/.deps_installed ]; then
+          echo 'Installing ws-audio-test dependencies (first run only)...';
+          npm install --omit=dev && touch node_modules/.deps_installed;
+        fi;
+        node server.js
+      "
+
   fs-admin-frontend:
     image: nginx:alpine
     container_name: fs-admin-frontend
@@ -67,3 +93,4 @@ services:
 
 volumes:
   fs_admin_backend_node_modules:
+  ws_audio_test_node_modules:

@@ -36,9 +36,9 @@ if is_full_ws_url(a1) then
     url = a1
 elseif a1 ~= "" then
     -- treat as suffix like "/echo"
-    url = (base or "ws://172.23.0.1:9096") .. a1
+    url = (base or "ws://127.0.0.1:9096") .. a1
 else
-    url = base or "ws://172.23.0.1:9096"
+    url = base or "ws://127.0.0.1:9096"
 end
 
 local mix = "mono"
