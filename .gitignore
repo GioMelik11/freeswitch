@@ -4,5 +4,9 @@ wizhio-freeswitch.tar
 # Node modules
 node_modules/
 admin-panel/data/backups
-admin-panel/backend/dist
-admin-panel/frontend/dist
+
+# Build outputs
+dist/
+admin-panel/backend/dist/
+admin-panel/frontend/dist/
+admin-panel/frontend/dist/**/*
