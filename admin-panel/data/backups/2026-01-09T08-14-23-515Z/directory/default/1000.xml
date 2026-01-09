@@ -12,6 +12,7 @@
       <variable name="outbound_caller_id_name" value="${{outbound_caller_name}"/>
       <variable name="outbound_caller_id_number" value="${{outbound_caller_id}"/>
       <variable name="callgroup" value="support"/>
+      <variable name="adminpanel_ai_enabled" value="true"/>
     </variables>
   </user>
 </include>
