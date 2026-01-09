@@ -59,15 +59,28 @@ type Extension = {
     <div class="rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
       <div class="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-xs text-slate-400">
         <div class="col-span-2">Ext</div>
-        <div class="col-span-5">Caller ID Name</div>
+        <div class="col-span-4">Caller ID Name</div>
         <div class="col-span-2">Caller ID #</div>
+        <div class="col-span-1">AI</div>
         <div class="col-span-3 text-right">Actions</div>
       </div>
       @for (e of paged(); track e.id) {
         <div class="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-900/60 items-center">
           <div class="col-span-2 font-mono">{{ e.id }}</div>
-          <div class="col-span-5">{{ e.callerIdName }}</div>
+          <div class="col-span-4">{{ e.callerIdName }}</div>
           <div class="col-span-2 font-mono">{{ e.callerIdNumber }}</div>
+          <div class="col-span-1">
+            <span
+              class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px]"
+              [class.border-emerald-800]="e.aiEnabled"
+              [class.text-emerald-200]="e.aiEnabled"
+              [class.border-slate-800]="!e.aiEnabled"
+              [class.text-slate-300]="!e.aiEnabled"
+              [title]="aiTooltip(e)"
+            >
+              {{ e.aiEnabled ? 'ON' : 'OFF' }}
+            </span>
+          </div>
           <div class="col-span-3 flex justify-end gap-2">
             <span
               class="mr-2 self-center text-xs"
@@ -229,6 +242,24 @@ export class ExtensionsPage {
 
   options = computed(() => this.opts.options());
 
+  aiServiceNameById = computed(() => {
+    const o = this.options();
+    const map = new Map<string, string>();
+    for (const s of (o?.aiServices ?? [])) {
+      if (!s?.id) continue;
+      map.set(String(s.id), String(s.name ?? s.id));
+    }
+    return map;
+  });
+
+  aiTooltip(e: Extension) {
+    if (!e.aiEnabled) return 'AI disabled';
+    const id = String(e.aiServiceId ?? '').trim();
+    if (!id) return 'AI enabled (default service)';
+    const name = this.aiServiceNameById().get(id);
+    return name ? `AI enabled (${name})` : `AI enabled (service: ${id})`;
+  }
+
   soundItems = computed((): SearchSelectItem[] => {
     const o = this.options();
     const all = o?.sounds?.all ?? [];
@@ -286,11 +317,17 @@ export class ExtensionsPage {
     const s = this.search().trim().toLowerCase();
     if (!s) return this.items();
     return this.items().filter((e) => {
+      const aiId = String(e.aiServiceId ?? '').toLowerCase();
+      const aiName = this.aiServiceNameById().get(String(e.aiServiceId ?? ''))?.toLowerCase() ?? '';
+      const aiFlag = e.aiEnabled ? 'ai on enabled' : 'ai off disabled';
       return (
         e.id.includes(s) ||
         e.callerIdName.toLowerCase().includes(s) ||
         e.callerIdNumber.toLowerCase().includes(s) ||
-        (e.callgroup ?? '').toLowerCase().includes(s)
+        (e.callgroup ?? '').toLowerCase().includes(s) ||
+        aiFlag.includes(s) ||
+        aiId.includes(s) ||
+        aiName.includes(s)
       );
     });
   }
