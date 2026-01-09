@@ -1,14 +1,13 @@
 <include>
-  <context name="default">
-    <extension name="adminpanel_outbound_defaults" continue="true">
-      <condition field="destination_number" expression="^9.*$">
+  <!-- Included into default context via dialplan/default.xml -->
+  <extension name="adminpanel_outbound_defaults" continue="true">
+    <condition field="destination_number" expression="^9.*$">
         <action application="set" data="adminpanel_trunk_outgoing_sound="/>
         <action application="set" data="adminpanel_trunk_outgoing_ivr="/>
-      </condition>
-      <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
+    </condition>
+    <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
         <action application="set" data="adminpanel_trunk_outgoing_sound="/>
         <action application="set" data="adminpanel_trunk_outgoing_ivr="/>
-      </condition>
-    </extension>
-  </context>
+    </condition>
+  </extension>
 </include>

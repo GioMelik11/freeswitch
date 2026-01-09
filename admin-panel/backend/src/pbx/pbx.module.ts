@@ -26,6 +26,7 @@ import { NatController } from './nat/nat.controller';
 import { NatService } from './nat/nat.service';
 import { SettingsController } from './settings/settings.controller';
 import { SettingsService } from './settings/settings.service';
+import { PbxBootstrapService } from './pbx-bootstrap.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -56,6 +57,7 @@ import { SettingsService } from './settings/settings.service';
     ConsoleService,
     NatService,
     SettingsService,
+    PbxBootstrapService,
   ],
 })
 export class PbxModule {}

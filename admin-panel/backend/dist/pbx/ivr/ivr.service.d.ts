@@ -1,8 +1,10 @@
 import { FilesService } from '../../files/files.service';
 import { IvrMenu } from './ivr.types';
+import { EslService } from '../../freeswitch/esl/esl.service';
 export declare class IvrService {
     private readonly files;
-    constructor(files: FilesService);
+    private readonly esl;
+    constructor(files: FilesService, esl: EslService);
     private normalizeSoundPath;
     list(): {
         etag: string;
@@ -16,6 +18,7 @@ export declare class IvrService {
         ok: boolean;
         etag: string;
     };
+    private reloadFsBestEffort;
     private mapMenu;
     private buildMenuNode;
     private renderIvrConf;

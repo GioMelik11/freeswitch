@@ -35,6 +35,7 @@ const nat_controller_1 = require("./nat/nat.controller");
 const nat_service_1 = require("./nat/nat.service");
 const settings_controller_1 = require("./settings/settings.controller");
 const settings_service_1 = require("./settings/settings.service");
+const pbx_bootstrap_service_1 = require("./pbx-bootstrap.service");
 let PbxModule = class PbxModule {
 };
 exports.PbxModule = PbxModule;
@@ -68,6 +69,7 @@ exports.PbxModule = PbxModule = __decorate([
             console_service_1.ConsoleService,
             nat_service_1.NatService,
             settings_service_1.SettingsService,
+            pbx_bootstrap_service_1.PbxBootstrapService,
         ],
     })
 ], PbxModule);

@@ -3,6 +3,7 @@ export type PbxDestination =
   | { type: 'extension'; target: string }
   | { type: 'queue'; target: string } // e.g. queue1@default
   | { type: 'ivr'; target: string } // menu name
+  | { type: 'ai'; target?: string } // optional: AI service id OR direct ws(s):// URL
   | { type: 'timeCondition'; target: string }; // extension number to transfer to
 
 export type OutgoingMedia =

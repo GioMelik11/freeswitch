@@ -2,12 +2,16 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { FilesService } from '../../files/files.service';
 import { asArray, xmlParser } from '../xml';
 import { IvrMenu } from './ivr.types';
+import { EslService } from '../../freeswitch/esl/esl.service';
 
 const IVR_CONF_PATH = 'autoload_configs/ivr.conf.xml';
 
 @Injectable()
 export class IvrService {
-  constructor(private readonly files: FilesService) {}
+  constructor(
+    private readonly files: FilesService,
+    private readonly esl: EslService,
+  ) { }
 
   private normalizeSoundPath(v: any) {
     const s = String(v ?? '');
@@ -42,11 +46,16 @@ export class IvrService {
     if (!found) nextMenus.push(renderedMenu);
 
     const xml = this.renderIvrConf(nextMenus);
-    return this.files.writeFile({
+    const res = this.files.writeFile({
       path: IVR_CONF_PATH,
       content: xml,
       etag: input.etag ?? read.etag,
     });
+
+    // Apply changes immediately (no manual reload needed)
+    void this.reloadFsBestEffort();
+
+    return res;
   }
 
   delete(name: string, etag?: string) {
@@ -58,11 +67,32 @@ export class IvrService {
       (m: any) => String(m?.['@_name'] ?? '') !== name,
     );
     const xml = this.renderIvrConf(menus);
-    return this.files.writeFile({
+    const res = this.files.writeFile({
       path: IVR_CONF_PATH,
       content: xml,
       etag: etag ?? read.etag,
     });
+
+    void this.reloadFsBestEffort();
+
+    return res;
+  }
+
+  private async reloadFsBestEffort() {
+    // NOTE: mod_ivr may cache menus; reloadxml is usually enough, but we also try a module reload.
+    const cmds = [
+      'reloadxml',
+      'reload mod_ivr',
+      'sofia profile internal rescan reloadxml',
+      'sofia profile external rescan reloadxml',
+    ];
+    for (const c of cmds) {
+      try {
+        await this.esl.api(c);
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private mapMenu(m: any): IvrMenu {

@@ -6,6 +6,20 @@ import { PbxDestination, PbxMetaV1 } from '../meta/pbx-meta.types';
 export class DialplanService {
   constructor(private readonly files: FilesService) {}
 
+  private buildAiCtx(meta: PbxMetaV1): AiCtx {
+    const services = new Map<string, string>();
+    for (const s of meta.aiServices ?? []) {
+      if (s?.enabled === false) continue;
+      if (!s?.id || !s?.socketUrl) continue;
+      services.set(String(s.id), String(s.socketUrl));
+    }
+    const defaultUrl =
+      (meta.defaultAiServiceId
+        ? (services.get(String(meta.defaultAiServiceId)) ?? '')
+        : '') || (services.size ? [...services.values()][0] : '');
+    return { services, defaultUrl };
+  }
+
   ensurePublicIncludesDir() {
     const rel = 'dialplan/public.xml';
     const read = this.files.readFile(rel);
@@ -73,6 +87,8 @@ export class DialplanService {
     const rel = 'dialplan/public/10_adminpanel_trunk_inbound.xml';
     const extXml: string[] = [];
 
+    const ai = this.buildAiCtx(meta);
+
     for (const [trunkName, t] of Object.entries(meta.trunks ?? {})) {
       if (!t?.inboundDestination) continue;
       const name = esc(trunkName);
@@ -83,7 +99,7 @@ export class DialplanService {
           `    <condition field="destination_number" expression="^(.*)$">\n` +
           `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
           `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-          renderDestination(dest).replace(/^ {8}/gm, '      ') +
+          renderDestination(dest, ai).replace(/^ {8}/gm, '      ') +
           `    </condition>\n` +
           `  </extension>`,
       );
@@ -115,16 +131,15 @@ export class DialplanService {
 
     const body =
       `<include>\n` +
-      `  <context name="default">\n` +
-      `    <extension name="adminpanel_outbound_defaults" continue="true">\n` +
-      `      <condition field="destination_number" expression="^9.*$">\n` +
+      `  <!-- Included into default context via dialplan/default.xml -->\n` +
+      `  <extension name="adminpanel_outbound_defaults" continue="true">\n` +
+      `    <condition field="destination_number" expression="^9.*$">\n` +
       actions +
-      `      </condition>\n` +
-      `      <condition field="destination_number" expression="^(\\+?[1-9][0-9]{7,14})$">\n` +
+      `    </condition>\n` +
+      `    <condition field="destination_number" expression="^(\\+?[1-9][0-9]{7,14})$">\n` +
       actions +
-      `      </condition>\n` +
-      `    </extension>\n` +
-      `  </context>\n` +
+      `    </condition>\n` +
+      `  </extension>\n` +
       `</include>\n`;
 
     this.files.writeFile({ path: rel, content: body });
@@ -158,9 +173,8 @@ export class DialplanService {
 
     const body =
       `<include>\n` +
-      `  <context name="default">\n` +
+      `  <!-- Included into default context via dialplan/default.xml -->\n` +
       (extXml.length ? `${extXml.join('\n\n')}\n` : '') +
-      `  </context>\n` +
       `</include>\n`;
 
     this.files.writeFile({ path: rel, content: body });
@@ -291,9 +305,8 @@ export class DialplanService {
 
     const body =
       `<include>\n` +
-      `  <context name="default">\n` +
+      `  <!-- Included into default context via dialplan/default.xml -->\n` +
       (extXml.length ? `${extXml.join('\n\n')}\n` : '') +
-      `  </context>\n` +
       `</include>\n`;
 
     this.files.writeFile({ path: rel, content: body });
@@ -357,16 +370,17 @@ export class DialplanService {
 
     const body =
       `<include>\n` +
-      `  <context name="default">\n` +
+      `  <!-- Included into default context via dialplan/default.xml -->\n` +
       (extNodes.length ? `${extNodes.join('\n\n')}\n` : '') +
-      `  </context>\n` +
       `</include>\n`;
 
     this.files.writeFile({ path: rel, content: body });
   }
 }
 
-function renderDestination(dest: PbxDestination) {
+type AiCtx = { services: Map<string, string>; defaultUrl: string };
+
+function renderDestination(dest: PbxDestination, ai?: AiCtx) {
   assertDestination(dest);
   switch (dest.type) {
     case 'terminate':
@@ -384,6 +398,20 @@ function renderDestination(dest: PbxDestination) {
         `        <action application="sleep" data="1000"/>\n` +
         `        <action application="ivr" data="${esc(dest.target)}"/>\n`
       );
+    case 'ai': {
+      const url = resolveAiUrl(dest.target, ai);
+      const aiScript =
+        '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
+      return (
+        `        <action application="answer"/>\n` +
+        `        <action application="sleep" data="500"/>\n` +
+        `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
+        `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n` +
+        `        <action application="lua" data="${aiScript} ${'$'}{audio_stream_url} mono 16k"/>\n` +
+        `        <action application="sleep" data="3600000"/>\n` +
+        `        <action application="hangup"/>\n`
+      );
+    }
     case 'timeCondition':
       return `        <action application="transfer" data="${esc(dest.target)} XML default"/>\n`;
   }
@@ -415,7 +443,25 @@ function assertDestination(dest: PbxDestination) {
       }
       return;
     }
+    case 'ai': {
+      const target = String((dest as any).target ?? '').trim();
+      if (!target) return; // ok: use default AI service
+      if (/^wss?:\/\//i.test(target)) return; // ok: direct URL
+      if (/^[a-zA-Z0-9_-]+$/.test(target)) return; // ok: service id
+      throw new BadRequestException(
+        `Invalid ai target "${target}". Expected AI service id (alnum/_/-) or ws(s):// URL.`,
+      );
+    }
   }
+}
+
+function resolveAiUrl(target: string | undefined, ai?: AiCtx) {
+  const t = String(target ?? '').trim();
+  if (/^wss?:\/\//i.test(t)) return t;
+  if (t && ai?.services?.has(t)) return String(ai.services.get(t) ?? '');
+  if (ai?.defaultUrl) return ai.defaultUrl;
+  // fall back to empty string; FreeSWITCH will fail fast and logs will show the issue
+  return '';
 }
 
 function esc(s: string) {

@@ -30,7 +30,9 @@ export class TimeConditionsService {
 
     const obj: any = xmlParser.parse(content);
     const include = obj?.include;
-    const exts = asArray(include?.context?.extension);
+    // This file is included into <context name="default"> via dialplan/default.xml,
+    // so it contains <extension> nodes directly (no nested <context> wrapper).
+    const exts = asArray(include?.extension);
 
     const items: TimeCondition[] = exts.map((ext: any) => {
       const name = String(ext?.['@_name'] ?? '');
@@ -75,8 +77,7 @@ export class TimeConditionsService {
     const read = this.files.readFile(TC_PATH);
     const obj: any = xmlParser.parse(read.content);
     const include = obj?.include;
-    const ctx = include?.context;
-    const exts = asArray(ctx?.extension);
+    const exts = asArray(include?.extension);
 
     const nextExts = exts.filter(
       (e: any) => String(e?.['@_name'] ?? '') !== input.name,
@@ -95,8 +96,7 @@ export class TimeConditionsService {
     const read = this.files.readFile(TC_PATH);
     const obj: any = xmlParser.parse(read.content);
     const include = obj?.include;
-    const ctx = include?.context;
-    const exts = asArray(ctx?.extension).filter(
+    const exts = asArray(include?.extension).filter(
       (e: any) => String(e?.['@_name'] ?? '') !== name,
     );
     const out = this.render(exts);
@@ -146,9 +146,8 @@ export class TimeConditionsService {
       .join('\n');
     return (
       `<include>\n` +
-      `  <context name="default">\n` +
+      `  <!-- Included into default context via dialplan/default.xml -->\n` +
       `${extensionsXml}\n` +
-      `  </context>\n` +
       `</include>\n`
     );
   }

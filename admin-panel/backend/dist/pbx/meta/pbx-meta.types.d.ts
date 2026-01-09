@@ -10,6 +10,9 @@ export type PbxDestination = {
     type: 'ivr';
     target: string;
 } | {
+    type: 'ai';
+    target?: string;
+} | {
     type: 'timeCondition';
     target: string;
 };

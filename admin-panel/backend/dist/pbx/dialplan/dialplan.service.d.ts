@@ -3,6 +3,7 @@ import { PbxMetaV1 } from '../meta/pbx-meta.types';
 export declare class DialplanService {
     private readonly files;
     constructor(files: FilesService);
+    private buildAiCtx;
     ensurePublicIncludesDir(): void;
     ensureDefaultIncludesDirEarly(): void;
     writeTrunkInbound(meta: PbxMetaV1): void;

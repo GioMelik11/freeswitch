@@ -1,5 +1,5 @@
 <include>
-  <context name="default">
+  <!-- Included into default context via dialplan/default.xml -->
     <extension name="adminpanel_ai_1000">
       <condition field="destination_number" expression="^1000$">
         <action application="answer"/>
@@ -11,5 +11,4 @@
         <action application="hangup"/>
       </condition>
     </extension>
-  </context>
 </include>

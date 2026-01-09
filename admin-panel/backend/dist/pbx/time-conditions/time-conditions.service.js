@@ -36,7 +36,7 @@ let TimeConditionsService = class TimeConditionsService {
         }
         const obj = xml_1.xmlParser.parse(content);
         const include = obj?.include;
-        const exts = (0, xml_1.asArray)(include?.context?.extension);
+        const exts = (0, xml_1.asArray)(include?.extension);
         const items = exts.map((ext) => {
             const name = String(ext?.['@_name'] ?? '');
             const c1 = (0, xml_1.asArray)(ext?.condition)[0];
@@ -70,8 +70,7 @@ let TimeConditionsService = class TimeConditionsService {
         const read = this.files.readFile(TC_PATH);
         const obj = xml_1.xmlParser.parse(read.content);
         const include = obj?.include;
-        const ctx = include?.context;
-        const exts = (0, xml_1.asArray)(ctx?.extension);
+        const exts = (0, xml_1.asArray)(include?.extension);
         const nextExts = exts.filter((e) => String(e?.['@_name'] ?? '') !== input.name);
         nextExts.push(this.buildExtension(input));
         const out = this.render(nextExts);
@@ -85,8 +84,7 @@ let TimeConditionsService = class TimeConditionsService {
         const read = this.files.readFile(TC_PATH);
         const obj = xml_1.xmlParser.parse(read.content);
         const include = obj?.include;
-        const ctx = include?.context;
-        const exts = (0, xml_1.asArray)(ctx?.extension).filter((e) => String(e?.['@_name'] ?? '') !== name);
+        const exts = (0, xml_1.asArray)(include?.extension).filter((e) => String(e?.['@_name'] ?? '') !== name);
         const out = this.render(exts);
         return this.files.writeFile({
             path: TC_PATH,
@@ -127,9 +125,8 @@ let TimeConditionsService = class TimeConditionsService {
             .map((e) => this.renderExtension(e))
             .join('\n');
         return (`<include>\n` +
-            `  <context name="default">\n` +
+            `  <!-- Included into default context via dialplan/default.xml -->\n` +
             `${extensionsXml}\n` +
-            `  </context>\n` +
             `</include>\n`);
     }
     renderExtension(e) {

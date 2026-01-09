@@ -13,11 +13,14 @@ exports.IvrService = void 0;
 const common_1 = require("@nestjs/common");
 const files_service_1 = require("../../files/files.service");
 const xml_1 = require("../xml");
+const esl_service_1 = require("../../freeswitch/esl/esl.service");
 const IVR_CONF_PATH = 'autoload_configs/ivr.conf.xml';
 let IvrService = class IvrService {
     files;
-    constructor(files) {
+    esl;
+    constructor(files, esl) {
         this.files = files;
+        this.esl = esl;
     }
     normalizeSoundPath(v) {
         const s = String(v ?? '');
@@ -51,11 +54,13 @@ let IvrService = class IvrService {
         if (!found)
             nextMenus.push(renderedMenu);
         const xml = this.renderIvrConf(nextMenus);
-        return this.files.writeFile({
+        const res = this.files.writeFile({
             path: IVR_CONF_PATH,
             content: xml,
             etag: input.etag ?? read.etag,
         });
+        void this.reloadFsBestEffort();
+        return res;
     }
     delete(name, etag) {
         const read = this.files.readFile(IVR_CONF_PATH);
@@ -65,11 +70,28 @@ let IvrService = class IvrService {
             throw new common_1.BadRequestException('Invalid ivr.conf.xml');
         const menus = (0, xml_1.asArray)(cfg?.menus?.menu).filter((m) => String(m?.['@_name'] ?? '') !== name);
         const xml = this.renderIvrConf(menus);
-        return this.files.writeFile({
+        const res = this.files.writeFile({
             path: IVR_CONF_PATH,
             content: xml,
             etag: etag ?? read.etag,
         });
+        void this.reloadFsBestEffort();
+        return res;
+    }
+    async reloadFsBestEffort() {
+        const cmds = [
+            'reloadxml',
+            'reload mod_ivr',
+            'sofia profile internal rescan reloadxml',
+            'sofia profile external rescan reloadxml',
+        ];
+        for (const c of cmds) {
+            try {
+                await this.esl.api(c);
+            }
+            catch {
+            }
+        }
     }
     mapMenu(m) {
         const attrs = m ?? {};
@@ -210,7 +232,8 @@ let IvrService = class IvrService {
 exports.IvrService = IvrService;
 exports.IvrService = IvrService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [files_service_1.FilesService])
+    __metadata("design:paramtypes", [files_service_1.FilesService,
+        esl_service_1.EslService])
 ], IvrService);
 function esc(s) {
     return String(s)
