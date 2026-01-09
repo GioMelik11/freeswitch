@@ -41,6 +41,36 @@ import { ToastService } from '../shared/toast.service';
         </div>
       </div>
 
+      @if (confirmReloadOpen()) {
+        <div class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div class="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-5">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-semibold">Reload FreeSWITCH</div>
+              <button class="text-slate-400 hover:text-white" (click)="cancelReload()">✕</button>
+            </div>
+            <div class="text-sm text-slate-300">
+              This will run <span class="font-mono">reloadxml</span> + <span class="font-mono">sofia rescan</span>.
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+              <button
+                class="rounded-lg border border-slate-800 px-3 py-2 text-sm hover:bg-slate-900"
+                (click)="cancelReload()"
+                [disabled]="reloading()"
+              >
+                Cancel
+              </button>
+              <button
+                class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                (click)="confirmReload()"
+                [disabled]="reloading()"
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <div class="mx-auto max-w-6xl px-4 py-6 grid grid-cols-1 md:grid-cols-12 gap-6">
         <nav class="md:col-span-3">
           <div class="rounded-2xl border border-slate-800 bg-slate-900/30 p-3">
@@ -129,6 +159,7 @@ import { ToastService } from '../shared/toast.service';
 export class ShellComponent {
   user = computed(() => this.auth.user());
   reloading = signal(false);
+  confirmReloadOpen = signal(false);
 
   constructor(
     private readonly auth: AuthService,
@@ -137,7 +168,15 @@ export class ShellComponent {
   ) { }
 
   reloadFs() {
-    if (!confirm('Reload FreeSWITCH now? (reloadxml + sofia rescan)')) return;
+    this.confirmReloadOpen.set(true);
+  }
+
+  cancelReload() {
+    this.confirmReloadOpen.set(false);
+  }
+
+  confirmReload() {
+    this.confirmReloadOpen.set(false);
     this.reloading.set(true);
     this.http
       .post(`${API_BASE_URL}/pbx/freeswitch/reload`, {})

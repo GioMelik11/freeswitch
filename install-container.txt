@@ -1,3 +1,6 @@
+#take backup of current working contaienr if do not have:
+docker export -o "freeswitch-backup.tar" freeswitch
+
 # To restore freeswitch container on a new server:
 # 1. Move freeswitch-backup.tar to /root folder
 # 2. Load the image:
