@@ -28,7 +28,12 @@ if url == "" then
 end
 
 local api = freeswitch.API()
-local cmd = "uuid_audio_stream " .. uuid .. " start " .. url .. " " .. mix .. " " .. rate
+-- Accept common aliases ("8k"/"16k") and normalize to the API's expected values (8000/16000)
+local rate_norm = tostring(rate)
+if rate_norm == "8k" then rate_norm = "8000" end
+if rate_norm == "16k" then rate_norm = "16000" end
+
+local cmd = "uuid_audio_stream " .. uuid .. " start " .. url .. " " .. mix .. " " .. rate_norm
 if meta ~= "" then
     cmd = cmd .. " " .. meta
 end

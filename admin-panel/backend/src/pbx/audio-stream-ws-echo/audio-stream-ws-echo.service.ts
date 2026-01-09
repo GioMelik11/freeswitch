@@ -23,16 +23,52 @@ export class AudioStreamWsEchoService implements OnModuleInit {
 
         const port = Number(this.config.get('AUDIO_STREAM_WS_ECHO_PORT') ?? 9096);
 
-        const wss = new WebSocketServer({ port, host: '0.0.0.0' });
+        // mod_audio_stream expects no WS compression negotiation (permessage-deflate can break some setups)
+        this.wss = new WebSocketServer({ port, host: '0.0.0.0', perMessageDeflate: false });
 
-        wss.on('connection', (ws) => {
-            console.log('Connected');
-            ws.on('message', (data) => {
-                if (Buffer.isBuffer(data)) {
-                    ws.send(data);  // Echo raw audio back (assumes L16)
-                } else {
-                    console.log('Text:', data.toString());
+        // eslint-disable-next-line no-console
+        console.log(`🎧 mod_audio_stream WS echo listening: ws://0.0.0.0:${port}/echo`);
+
+        this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+            const url = String(req.url ?? '/');
+            if (!url.includes('echo')) {
+                ws.close(1008, 'Only /echo supported');
+                return;
+            }
+
+            // eslint-disable-next-line no-console
+            console.log(`[ws-echo] Connected url=${url}`);
+
+            let sampleRate = 8000;
+
+            ws.on('message', (data, isBinary) => {
+                // First message can be metadata text. We optionally parse sampleRate from it.
+                if (!isBinary) {
+                    try {
+                        const s = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+                        const j = JSON.parse(s);
+                        const sr = Number(j?.sampleRate ?? j?.rate ?? j?.data?.sampleRate);
+                        if (sr === 8000 || sr === 16000) sampleRate = sr;
+                    } catch {
+                        // ignore
+                    }
+                    return;
                 }
+
+                const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as any);
+
+                // Per upstream mod_audio_stream "play" feature:
+                // https://github.com/sptmru/freeswitch_mod_audio_stream
+                const msg = {
+                    type: 'streamAudio',
+                    data: {
+                        audioDataType: 'raw',
+                        sampleRate,
+                        audioData: buf.toString('base64'),
+                    },
+                };
+
+                ws.send(JSON.stringify(msg));
             });
         });
 
