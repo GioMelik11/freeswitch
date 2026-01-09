@@ -456,7 +456,17 @@ export class TrunksPage {
 
   loadStatuses() {
     this.http.get<Record<string, { status: string; raw: string }>>(`${API_BASE_URL}/pbx/status/gateways`).subscribe({
-      next: (res) => this.statuses.set(res ?? {}),
+      next: (res) => {
+        const inMap = res ?? {};
+        // Be resilient: backend/freeSWITCH may key as "external::gw" or just "gw". Normalize to plain name too.
+        const out: Record<string, { status: string; raw: string }> = {};
+        for (const [k, v] of Object.entries(inMap)) {
+          out[k] = v as any;
+          const plain = k.includes('::') ? k.split('::').pop()! : k;
+          out[plain] = v as any;
+        }
+        this.statuses.set(out);
+      },
       error: () => this.statuses.set({}),
     });
   }
