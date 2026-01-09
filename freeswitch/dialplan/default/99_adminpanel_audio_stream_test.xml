@@ -1,27 +1,51 @@
 <include>
-  <!-- Quick test: dial 9999 from an extension and you should hear ivr/incoming.wav streamed via mod_audio_stream -->
-  <extension name="adminpanel_audio_stream_test_9999">
-    <condition field="destination_number" expression="^9999$">
-      <action application="answer"/>
-      <action application="sleep" data="300"/>
-      <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
-      <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream_test.lua ws://127.0.0.1:9096"/>
-      <action application="sleep" data="10000"/>
-      <action application="hangup"/>
-    </condition>
-  </extension>
+    <!--
+    Test endpoints.
 
-  <!-- Echo test: dial 9998 and you should hear your own voice echoed back (proves server->FS audio works) -->
-  <extension name="adminpanel_audio_stream_echo_9998">
-    <condition field="destination_number" expression="^9998$">
-      <action application="answer"/>
-      <action application="sleep" data="300"/>
-      <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
-      <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream_test.lua ws://127.0.0.1:9096/echo"/>
-      <action application="sleep" data="15000"/>
-      <action application="hangup"/>
-    </condition>
-  </extension>
+    - 9998: FreeSWITCH built-in echo (no backend required)
+    - 9999: mod_audio_stream WAV playback test (requires WS server)
+    - 9997: mod_audio_stream echo test (requires WS server that echoes binary PCM back)
+
+    WS base URL is configured via the global variable $${audio_stream_test_url}
+    (see freeswitch/vars.xml).
+  -->
+
+    <!-- Echo test (built-in): dial 9998 and you should hear your own voice echoed back -->
+    <extension name="echo_test_9998">
+        <condition field="destination_number" expression="^9998$">
+            <action application="answer"/>
+            <action application="sleep" data="300"/>
+            <action application="echo"/>
+            <action application="hangup"/>
+        </condition>
+    </extension>
+
+    <!-- Quick WS test: dial 9999 and you should hear ivr/incoming.wav streamed via mod_audio_stream -->
+    <extension name="adminpanel_audio_stream_test_9999">
+        <condition field="destination_number" expression="^9999$">
+            <action application="answer"/>
+            <action application="sleep" data="300"/>
+            <action application="set" data="STREAM_SUPPRESS_LOG=true"/>
+            <action application="set" data="audio_stream_test_url=$${audio_stream_test_url}"/>
+            <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream_test.lua"/>
+            <action application="sleep" data="10000"/>
+            <action application="hangup"/>
+        </condition>
+    </extension>
+
+    <!-- WS echo test: dial 9997 and you should hear your own voice echoed back (requires WS server /echo handler) -->
+    <extension name="adminpanel_audio_stream_echo_9997">
+        <condition field="destination_number" expression="^9997$">
+            <action application="answer"/>
+            <action application="sleep" data="300"/>
+            <!-- Keep logs enabled here: if WS is unreachable you want to see mod_audio_stream errors -->
+            <action application="set" data="STREAM_SUPPRESS_LOG=false"/>
+            <action application="set" data="audio_stream_test_url=$${audio_stream_test_url}"/>
+            <action application="lua" data="/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream_test.lua /echo"/>
+            <action application="sleep" data="15000"/>
+            <action application="hangup"/>
+        </condition>
+    </extension>
 </include>
 
 
