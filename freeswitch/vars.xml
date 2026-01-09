@@ -77,7 +77,7 @@
       Linux: you may prefer ws://127.0.0.1:9096 (host networking) or ws://<backend-container-ip>:9096.
   -->
   <!-- Default to same "gateway-style" IP used elsewhere in this repo (see dialplan/default/10_adminpanel_extensions.xml). -->
-  <X-PRE-PROCESS cmd="set" data="audio_stream_test_url=ws://172.23.0.1:9096"/>
+  <X-PRE-PROCESS cmd="set" data="audio_stream_test_url=ws://172.0.0.1:9096"/>
 
 </include>
 
