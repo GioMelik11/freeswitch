@@ -26,8 +26,7 @@
     <param name="outbound-codec-negotiation" value="generous"/>
     <param name="rtp-timer-name" value="soft"/>
     <param name="rtp-ip" value="$${local_ip_v4}"/>
-    <!-- Bind SIP to all interfaces so Windows->WSL localhost forwarding can reach it -->
-    <param name="sip-ip" value="0.0.0.0"/>
+    <param name="sip-ip" value="$${local_ip_v4}"/>
     <param name="hold-music" value="$${hold_music}"/>
     <!-- Media handling for incoming calls - Direct RTP flow -->
     <param name="apply-nat-acl" value="nat.auto"/>
