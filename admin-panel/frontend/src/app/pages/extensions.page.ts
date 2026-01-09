@@ -17,6 +17,7 @@ type Extension = {
   callerIdNumber: string;
   callgroup?: string;
   outgoingSound?: string;
+  outboundTrunk?: string;
   forwardMobile?: string;
   aiEnabled?: boolean;
   aiServiceId?: string;
@@ -174,6 +175,21 @@ type Extension = {
                   [showValue]="true"
                 />
               </label>
+              <div class="mt-3">
+                <div class="text-[11px] text-slate-400 mb-1">Outbound trunk (gateway)</div>
+                <app-search-select
+                  [items]="trunkItems()"
+                  [value]="form.controls.outboundTrunk.value"
+                  (valueChange)="form.controls.outboundTrunk.setValue($event)"
+                  [allowCustom]="false"
+                  [mono]="true"
+                  [showValue]="true"
+                  placeholder="{{ defaultTrunkLabel() }}"
+                />
+                <div class="text-[11px] text-slate-400 mt-1">
+                  If empty, this extension uses the PBX default trunk.
+                </div>
+              </div>
             </div>
 
             <div class="sm:col-span-2 rounded-xl border border-slate-800 bg-slate-900/20 p-3">
@@ -276,6 +292,24 @@ export class ExtensionsPage {
     return [{ value: '', label: '(inherit trunk default)' }, ...this.soundItems()];
   });
 
+  defaultTrunkLabel = computed(() => {
+    const o = this.options();
+    const name = String(o?.defaultTrunkName ?? '').trim();
+    return name ? `(default: ${name})` : '(default trunk)';
+  });
+
+  trunkItems = computed((): SearchSelectItem[] => {
+    const o = this.options();
+    const list = o?.trunks ?? [];
+    const items: SearchSelectItem[] = [{ value: '', label: '(use default trunk)', group: 'Trunks' }];
+    for (const t of list) {
+      if (!t?.name) continue;
+      const label = t.isDefault ? `${t.name} (default)` : t.name;
+      items.push({ value: t.name, label, group: 'Trunks' });
+    }
+    return items;
+  });
+
   aiServiceItems = computed((): SearchSelectItem[] => {
     const o = this.options();
     const list = o?.aiServices ?? [];
@@ -298,6 +332,7 @@ export class ExtensionsPage {
     callerIdNumber: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     callgroup: new FormControl('', { nonNullable: true }),
     outgoingSound: new FormControl('', { nonNullable: true }),
+    outboundTrunk: new FormControl('', { nonNullable: true }),
     forwardMobile: new FormControl('', { nonNullable: true }),
     aiEnabled: new FormControl(false, { nonNullable: true }),
     aiServiceId: new FormControl('', { nonNullable: true }),
@@ -372,6 +407,7 @@ export class ExtensionsPage {
       callerIdNumber: '',
       callgroup: '',
       outgoingSound: '',
+      outboundTrunk: '',
       forwardMobile: '',
       aiEnabled: false,
       aiServiceId: '',
@@ -390,6 +426,7 @@ export class ExtensionsPage {
       callerIdNumber: e.callerIdNumber,
       callgroup: e.callgroup ?? '',
       outgoingSound: e.outgoingSound ?? '',
+      outboundTrunk: e.outboundTrunk ?? '',
       forwardMobile: e.forwardMobile ?? '',
       aiEnabled: Boolean(e.aiEnabled),
       aiServiceId: e.aiServiceId ?? '',
@@ -413,6 +450,7 @@ export class ExtensionsPage {
       callerIdNumber: v.callerIdNumber,
       callgroup: this.editingId() ? this.editingQueueValue : (v.callgroup || undefined),
       outgoingSound: v.outgoingSound || undefined,
+      outboundTrunk: v.outboundTrunk || undefined,
       forwardMobile: v.forwardMobile || undefined,
       aiEnabled: v.aiEnabled || undefined,
       aiServiceId: v.aiServiceId || undefined,

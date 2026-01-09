@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { API_BASE_URL } from './api';
 
 export type OptionExtension = { id: string; label: string };
+export type OptionTrunk = { name: string; isDefault?: boolean };
 export type OptionQueue = { name: string };
 export type OptionIvr = { name: string };
 export type OptionTimeCondition = { name: string; extensionNumber: string };
@@ -11,6 +12,7 @@ export type OptionAiService = { id: string; name: string; socketUrl: string };
 
 export type PbxOptions = {
   extensions: OptionExtension[];
+  trunks: OptionTrunk[];
   queues: OptionQueue[];
   ivrs: OptionIvr[];
   timeConditions: OptionTimeCondition[];
@@ -20,6 +22,7 @@ export type PbxOptions = {
   domains: string[];
   aiServices: OptionAiService[];
   defaultAiServiceId?: string | null;
+  defaultTrunkName?: string | null;
 };
 
 @Injectable({ providedIn: 'root' })

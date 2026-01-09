@@ -117,6 +117,31 @@ let DialplanService = class DialplanService {
             `</include>\n`;
         this.files.writeFile({ path: rel, content: body });
     }
+    writeOutboundDefaultTrunkRoutes(meta) {
+        const rel = 'dialplan/default/02_adminpanel_outbound_default_trunk.xml';
+        const configured = String(meta.defaultTrunkName ?? '').trim();
+        const fallback = configured || (Object.keys(meta.trunks ?? {})[0] ?? '') || 'sip_trunk_provider';
+        const fallbackEsc = esc(fallback);
+        const trunkVar = '${adminpanel_outbound_trunk:-' + fallbackEsc + '}';
+        const mkBlock = (expr, dialed) => `    <condition field="destination_number" expression="${esc(expr)}">\n` +
+            `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+            `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+            `      <action application="set" data="ringback=${'$'}{adminpanel_outgoing_sound:-${'$'}{us-ring}}"/>\n` +
+            `      <action application="lua" data="adminpanel_outgoing_ivr.lua"/>\n` +
+            `      <action application="set" data="call_timeout=60"/>\n` +
+            `      <action application="set" data="hangup_after_bridge=true"/>\n` +
+            `      <action application="set" data="continue_on_fail=true"/>\n` +
+            `      <action application="bridge" data="sofia/gateway/${trunkVar}/${dialed}"/>\n` +
+            `    </condition>\n`;
+        const body = `<include>\n` +
+            `  <!-- Included into default context via dialplan/default.xml -->\n` +
+            `  <extension name="adminpanel_outbound_default_trunk" continue="true">\n` +
+            mkBlock('^9(\\+?[1-9][0-9]{7,14})$', '$1') +
+            mkBlock('^(\\+?[1-9][0-9]{7,14})$', '${destination_number}') +
+            `  </extension>\n` +
+            `</include>\n`;
+        this.files.writeFile({ path: rel, content: body });
+    }
     writeQueues(meta) {
         const rel = 'dialplan/default/20_adminpanel_queues.xml';
         const extXml = [];
@@ -229,6 +254,10 @@ let DialplanService = class DialplanService {
             }
             const mobile = String(e.forwardMobile ?? '').trim();
             if (mobile) {
+                const trunk = String(e.outboundTrunk ?? '').trim();
+                const trunkVar = trunk
+                    ? esc(trunk)
+                    : '${adminpanel_outbound_trunk:-sip_trunk_provider}';
                 extXml.push(`    <extension name="adminpanel_forward_${esc(id)}">\n` +
                     `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
                     `        <action application="export" data="dialed_extension=${esc(id)}"/>\n` +
@@ -236,7 +265,7 @@ let DialplanService = class DialplanService {
                     `        <action application="set" data="call_timeout=30"/>\n` +
                     `        <action application="set" data="continue_on_fail=true"/>\n` +
                     `        <action application="set" data="hangup_after_bridge=true"/>\n` +
-                    `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/sip_trunk_provider/${esc(mobile)}"/>\n` +
+                    `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/${trunkVar}/${esc(mobile)}"/>\n` +
                     `      </condition>\n` +
                     `    </extension>`);
             }

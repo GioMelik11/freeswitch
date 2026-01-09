@@ -2,6 +2,7 @@ export type Trunk = {
     name: string;
     filePath: string;
     register: boolean;
+    isDefault?: boolean;
     username?: string;
     password?: string;
     realm?: string;

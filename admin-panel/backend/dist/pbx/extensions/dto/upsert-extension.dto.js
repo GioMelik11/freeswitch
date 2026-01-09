@@ -20,6 +20,7 @@ class UpsertExtensionDto {
     callgroup;
     outgoingSound;
     outgoingIvr;
+    outboundTrunk;
     forwardMobile;
     aiEnabled;
     aiServiceId;
@@ -61,6 +62,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpsertExtensionDto.prototype, "outgoingIvr", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpsertExtensionDto.prototype, "outboundTrunk", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

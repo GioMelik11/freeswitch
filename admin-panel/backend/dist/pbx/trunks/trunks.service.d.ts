@@ -9,6 +9,10 @@ export declare class TrunksService {
     constructor(files: FilesService, meta: PbxMetaService, dialplan: DialplanService);
     list(): Trunk[];
     get(name: string): Trunk;
+    setDefault(name: string): {
+        ok: true;
+        defaultTrunkName: string;
+    };
     upsert(input: {
         name: string;
         register: boolean;

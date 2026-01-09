@@ -8,6 +8,7 @@ export type Extension = {
     callgroup?: string;
     outgoingSound?: string;
     outgoingIvr?: string;
+    outboundTrunk?: string;
     forwardMobile?: string;
     aiEnabled?: boolean;
     aiServiceId?: string;

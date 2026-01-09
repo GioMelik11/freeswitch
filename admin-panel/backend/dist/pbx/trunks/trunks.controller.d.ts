@@ -9,6 +9,10 @@ export declare class TrunksController {
         ok: boolean;
         etag: string;
     };
+    makeDefault(name: string): {
+        ok: true;
+        defaultTrunkName: string;
+    };
     delete(name: string, etag?: string): {
         ok: boolean;
     };

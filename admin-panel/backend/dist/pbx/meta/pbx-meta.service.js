@@ -67,6 +67,7 @@ let PbxMetaService = class PbxMetaService {
             trunks: {},
             aiServices: [],
             defaultAiServiceId: undefined,
+            defaultTrunkName: undefined,
         };
     }
     get() {
@@ -85,6 +86,7 @@ let PbxMetaService = class PbxMetaService {
         meta.queues = meta.queues ?? {};
         meta.trunks = meta.trunks ?? {};
         meta.aiServices = meta.aiServices ?? [];
+        meta.defaultTrunkName = meta.defaultTrunkName ?? undefined;
         return { meta, etag: this.sha256(content) };
     }
     write(meta, etag) {
@@ -129,6 +131,14 @@ let PbxMetaService = class PbxMetaService {
         const meta = cur.meta;
         if (meta.trunks[name])
             delete meta.trunks[name];
+        if (meta.defaultTrunkName === name)
+            meta.defaultTrunkName = undefined;
+        return this.write(meta, cur.etag);
+    }
+    setDefaultTrunkName(name) {
+        const cur = this.get();
+        const meta = cur.meta;
+        meta.defaultTrunkName = name ? String(name) : undefined;
         return this.write(meta, cur.etag);
     }
 };

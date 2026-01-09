@@ -36,4 +36,8 @@ export declare class PbxMetaService {
         ok: true;
         etag: string;
     };
+    setDefaultTrunkName(name: string | undefined): {
+        ok: true;
+        etag: string;
+    };
 }

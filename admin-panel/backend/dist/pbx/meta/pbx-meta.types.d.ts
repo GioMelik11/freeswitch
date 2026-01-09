@@ -41,6 +41,7 @@ export type PbxMetaV1 = {
     version: 1;
     aiServices?: AiServiceDef[];
     defaultAiServiceId?: string;
+    defaultTrunkName?: string;
     queues: Record<string, {
         extensionNumber?: string;
         timeoutDestination?: PbxDestination;

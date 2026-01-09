@@ -12,6 +12,7 @@ type Trunk = {
   name: string;
   filePath: string;
   register: boolean;
+  isDefault?: boolean;
   username?: string;
   password?: string;
   realm?: string;
@@ -69,7 +70,12 @@ type Trunk = {
       </div>
       @for (t of paged(); track t.name) {
         <div class="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-900/60 items-center">
-          <div class="col-span-4 font-mono text-sm">{{ t.name }}</div>
+          <div class="col-span-4 font-mono text-sm flex items-center gap-2">
+            <span>{{ t.name }}</span>
+            @if (t.isDefault) {
+              <span class="rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-0.5 text-[11px] text-amber-200">DEFAULT</span>
+            }
+          </div>
           <div class="col-span-3 font-mono text-xs text-slate-300">{{ t.proxy ?? t.realm ?? '-' }}</div>
           <div class="col-span-2 font-mono text-xs text-slate-300 truncate">{{ t.username ?? '-' }}</div>
           <div class="col-span-1 text-center">
@@ -85,6 +91,14 @@ type Trunk = {
             </span>
           </div>
           <div class="col-span-2 flex justify-end gap-2">
+            <button
+              class="rounded-lg border border-amber-900/60 px-2 py-1 text-xs text-amber-200 hover:bg-amber-950/30 disabled:opacity-50"
+              [disabled]="t.isDefault"
+              (click)="makeDefault(t)"
+              title="Use this trunk when an extension does not explicitly select a trunk"
+            >
+              Make default
+            </button>
             <button class="rounded-lg border border-slate-800 px-2 py-1 text-xs hover:bg-slate-900" (click)="edit(t)">
               Edit
             </button>
@@ -561,6 +575,18 @@ export class TrunksPage {
         this.error.set(err?.error?.message ?? 'Failed to save trunk');
         this.saving.set(false);
       },
+    });
+  }
+
+  makeDefault(t: Trunk) {
+    if (t.isDefault) return;
+    if (!confirm(`Make trunk ${t.name} the default for outbound calls?`)) return;
+    this.http.post(`${API_BASE_URL}/pbx/trunks/${encodeURIComponent(t.name)}/default`, {}).subscribe({
+      next: () => {
+        this.toast.success('Default trunk updated');
+        this.load();
+      },
+      error: (err) => this.error.set(err?.error?.message ?? 'Failed to set default trunk'),
     });
   }
 

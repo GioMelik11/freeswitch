@@ -26,7 +26,8 @@
     <param name="outbound-codec-negotiation" value="generous"/>
     <param name="rtp-timer-name" value="soft"/>
     <param name="rtp-ip" value="$${local_ip_v4}"/>
-    <param name="sip-ip" value="$${local_ip_v4}"/>
+    <!-- Bind SIP to all interfaces so Windows->WSL localhost forwarding can reach it -->
+    <param name="sip-ip" value="0.0.0.0"/>
     <param name="hold-music" value="$${hold_music}"/>
     <!-- Media handling for incoming calls - Direct RTP flow -->
     <param name="apply-nat-acl" value="nat.auto"/>
@@ -49,7 +50,7 @@
     <param name="NDLB-force-rport-bye" value="true"/>
     <param name="NDLB-force-rport-cancel" value="true"/>
     <param name="NDLB-force-rport-ack" value="true"/>
-    <param name="log-auth-failures" value="false"/>
+    <param name="log-auth-failures" value="true"/>
     <param name="session-timeout" value="1800"/>
     <param name="session-refresh" value="120"/>
     <param name="enable-100rel" value="true"/>
@@ -64,7 +65,8 @@
     <param name="ext-sip-ip" value="$${external_sip_ip}"/>
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
-    <param name="apply-inbound-acl" value="domains"/>
+    <!-- Allow LAN/WSL clients to REGISTER (the 'domains' ACL defaults deny and will block registrations) -->
+    <param name="apply-inbound-acl" value="adminpanel_localnet"/>
     <param name="rtp-rewrite-timestamps" value="true"/>
     <param name="pass-rfc2833" value="true"/>
     <param name="suppress-cng" value="true"/>
@@ -97,7 +99,8 @@
     <param name="presence-hosts" value="$${domain},$${local_ip_v4}"/>
     <param name="presence-privacy" value="$${presence_privacy}"/>
     <param name="inbound-late-negotiation" value="true"/>
-    <param name="challenge-realm" value="auto_from"/>
+    <!-- Avoid realm mismatch when clients use 'localhost' as their domain -->
+    <param name="challenge-realm" value="$${domain}"/>
     <param name="force-register-domain" value="$${domain}"/>
     <param name="force-subscription-domain" value="$${domain}"/>
     <param name="force-register-db-domain" value="$${domain}"/>

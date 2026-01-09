@@ -8,6 +8,7 @@ export declare class DialplanService {
     ensureDefaultIncludesDirEarly(): void;
     writeTrunkInbound(meta: PbxMetaV1): void;
     writeOutboundDefaults(meta: PbxMetaV1): void;
+    writeOutboundDefaultTrunkRoutes(meta: PbxMetaV1): void;
     writeQueues(meta: PbxMetaV1): void;
     private ensureQueuePostLua;
     writeExtensionsSpecial(exts: Array<{
@@ -15,6 +16,7 @@ export declare class DialplanService {
         forwardMobile?: string;
         aiEnabled?: boolean;
         aiServiceId?: string;
+        outboundTrunk?: string;
     }>, ai?: {
         services: Map<string, string>;
         defaultUrl?: string;

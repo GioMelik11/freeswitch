@@ -30,6 +30,17 @@ export class TrunksService {
     return this.getByPath(`${TRUNK_DIR}/${name}.xml`, m);
   }
 
+  setDefault(name: string) {
+    this.assertName(name);
+    // Ensure it exists
+    this.get(name);
+    this.meta.setDefaultTrunkName(name);
+    const m = this.meta.get().meta;
+    this.dialplan.ensureDefaultIncludesDirEarly();
+    this.dialplan.writeOutboundDefaultTrunkRoutes(m);
+    return { ok: true as const, defaultTrunkName: name };
+  }
+
   upsert(input: {
     name: string;
     register: boolean;
@@ -72,6 +83,7 @@ export class TrunksService {
       this.dialplan.ensureDefaultIncludesDirEarly();
       this.dialplan.writeOutboundDefaults(m);
       this.dialplan.writeOutboundPrefixRoutes(m);
+      this.dialplan.writeOutboundDefaultTrunkRoutes(m);
     }
 
     return res;
@@ -88,6 +100,7 @@ export class TrunksService {
     this.dialplan.ensureDefaultIncludesDirEarly();
     this.dialplan.writeOutboundDefaults(m);
     this.dialplan.writeOutboundPrefixRoutes(m);
+    this.dialplan.writeOutboundDefaultTrunkRoutes(m);
     return res;
   }
 
@@ -108,6 +121,7 @@ export class TrunksService {
       name,
       filePath,
       register: String(get('register') ?? 'false') === 'true',
+      isDefault: String(meta?.defaultTrunkName ?? '') === name ? true : undefined,
       username: get('username'),
       password: get('password'),
       realm: get('realm'),

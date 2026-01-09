@@ -8,12 +8,14 @@ import { FilesService } from '../../files/files.service';
 import { xmlParser } from '../xml';
 import { TimeConditionsService } from '../time-conditions/time-conditions.service';
 import { PbxMetaService } from '../meta/pbx-meta.service';
+import { TrunksService } from '../trunks/trunks.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pbx/options')
 export class OptionsController {
   constructor(
     private readonly extensions: ExtensionsService,
+    private readonly trunks: TrunksService,
     private readonly queues: QueuesService,
     private readonly ivrs: IvrService,
     private readonly timeConditions: TimeConditionsService,
@@ -59,8 +61,14 @@ export class OptionsController {
         socketUrl: String(s.socketUrl),
       }));
 
+    const trunks = this.trunks.list().map((t) => ({
+      name: t.name,
+      isDefault: Boolean(t.isDefault),
+    }));
+
     return {
       extensions: ext,
+      trunks,
       queues: q,
       ivrs: ivr,
       timeConditions: tc,
@@ -70,6 +78,7 @@ export class OptionsController {
       domains,
       aiServices,
       defaultAiServiceId: m.defaultAiServiceId ?? null,
+      defaultTrunkName: m.defaultTrunkName ?? null,
     };
   }
 

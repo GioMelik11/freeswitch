@@ -28,6 +28,7 @@ export class PbxMetaService {
       trunks: {},
       aiServices: [],
       defaultAiServiceId: undefined,
+      defaultTrunkName: undefined,
     };
   }
 
@@ -49,6 +50,7 @@ export class PbxMetaService {
     meta.queues = meta.queues ?? {};
     meta.trunks = meta.trunks ?? {};
     meta.aiServices = meta.aiServices ?? [];
+    meta.defaultTrunkName = meta.defaultTrunkName ?? undefined;
     return { meta, etag: this.sha256(content) };
   }
 
@@ -108,6 +110,14 @@ export class PbxMetaService {
     const cur = this.get();
     const meta = cur.meta;
     if (meta.trunks[name]) delete meta.trunks[name];
+    if (meta.defaultTrunkName === name) meta.defaultTrunkName = undefined;
+    return this.write(meta, cur.etag);
+  }
+
+  setDefaultTrunkName(name: string | undefined) {
+    const cur = this.get();
+    const meta = cur.meta;
+    meta.defaultTrunkName = name ? String(name) : undefined;
     return this.write(meta, cur.etag);
   }
 }

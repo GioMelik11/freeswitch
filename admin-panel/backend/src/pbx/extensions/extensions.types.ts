@@ -8,6 +8,7 @@ export type Extension = {
   callgroup?: string;
   outgoingSound?: string;
   outgoingIvr?: string;
+  outboundTrunk?: string; // gateway name; if empty -> use PBX default trunk
   forwardMobile?: string; // if not answered, forward to this external number
   aiEnabled?: boolean; // if true, calls to this extension go to AI service
   aiServiceId?: string; // which AI service/socket to use (from PBX meta)

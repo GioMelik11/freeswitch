@@ -69,6 +69,9 @@ export class ExtensionsService {
       outgoingIvr: getVar('adminpanel_outgoing_ivr')
         ? String(getVar('adminpanel_outgoing_ivr'))
         : undefined,
+      outboundTrunk: getVar('adminpanel_outbound_trunk')
+        ? String(getVar('adminpanel_outbound_trunk'))
+        : undefined,
       forwardMobile: getVar('adminpanel_forward_mobile')
         ? String(getVar('adminpanel_forward_mobile'))
         : undefined,
@@ -91,6 +94,7 @@ export class ExtensionsService {
     callgroup?: string;
     outgoingSound?: string;
     outgoingIvr?: string;
+    outboundTrunk?: string;
     forwardMobile?: string;
     aiEnabled?: boolean;
     aiServiceId?: string;
@@ -122,6 +126,7 @@ export class ExtensionsService {
       callgroup: input.callgroup,
       outgoingSound: input.outgoingSound,
       outgoingIvr: input.outgoingIvr,
+      outboundTrunk: input.outboundTrunk,
       forwardMobile: input.forwardMobile,
       aiEnabled: input.aiEnabled,
       aiServiceId: input.aiServiceId,
@@ -217,6 +222,7 @@ export class ExtensionsService {
     callgroup?: string;
     outgoingSound?: string;
     outgoingIvr?: string;
+    outboundTrunk?: string;
     forwardMobile?: string;
     aiEnabled?: boolean;
     aiServiceId?: string;
@@ -235,6 +241,10 @@ export class ExtensionsService {
 
     const forwardMobileLine = e.forwardMobile
       ? `      <variable name="adminpanel_forward_mobile" value="${escapeXml(e.forwardMobile)}"/>\n`
+      : '';
+
+    const outboundTrunkLine = e.outboundTrunk
+      ? `      <variable name="adminpanel_outbound_trunk" value="${escapeXml(e.outboundTrunk)}"/>\n`
       : '';
 
     const aiEnabledLine = e.aiEnabled
@@ -262,6 +272,7 @@ export class ExtensionsService {
       callgroupLine +
       outgoingSoundLine +
       outgoingIvrLine +
+      outboundTrunkLine +
       forwardMobileLine +
       aiEnabledLine +
       aiServiceIdLine +

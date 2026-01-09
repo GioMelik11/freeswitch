@@ -21,6 +21,7 @@ export declare class ExtensionsService {
         callgroup?: string;
         outgoingSound?: string;
         outgoingIvr?: string;
+        outboundTrunk?: string;
         forwardMobile?: string;
         aiEnabled?: boolean;
         aiServiceId?: string;

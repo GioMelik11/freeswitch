@@ -5,19 +5,25 @@ import { SoundsService } from '../sounds/sounds.service';
 import { FilesService } from '../../files/files.service';
 import { TimeConditionsService } from '../time-conditions/time-conditions.service';
 import { PbxMetaService } from '../meta/pbx-meta.service';
+import { TrunksService } from '../trunks/trunks.service';
 export declare class OptionsController {
     private readonly extensions;
+    private readonly trunks;
     private readonly queues;
     private readonly ivrs;
     private readonly timeConditions;
     private readonly sounds;
     private readonly files;
     private readonly meta;
-    constructor(extensions: ExtensionsService, queues: QueuesService, ivrs: IvrService, timeConditions: TimeConditionsService, sounds: SoundsService, files: FilesService, meta: PbxMetaService);
+    constructor(extensions: ExtensionsService, trunks: TrunksService, queues: QueuesService, ivrs: IvrService, timeConditions: TimeConditionsService, sounds: SoundsService, files: FilesService, meta: PbxMetaService);
     get(): {
         extensions: {
             id: string;
             label: string;
+        }[];
+        trunks: {
+            name: string;
+            isDefault: boolean;
         }[];
         queues: {
             name: string;
@@ -43,6 +49,7 @@ export declare class OptionsController {
             socketUrl: string;
         }[];
         defaultAiServiceId: string | null;
+        defaultTrunkName: string | null;
     };
     private getMohClasses;
 }

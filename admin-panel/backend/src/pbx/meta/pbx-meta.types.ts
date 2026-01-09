@@ -29,6 +29,8 @@ export type PbxMetaV1 = {
   version: 1;
   aiServices?: AiServiceDef[];
   defaultAiServiceId?: string;
+  /** Default outbound trunk (gateway name). Extensions may override per-extension. */
+  defaultTrunkName?: string;
   queues: Record<
     string,
     {

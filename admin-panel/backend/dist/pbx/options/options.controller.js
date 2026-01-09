@@ -20,16 +20,19 @@ const files_service_1 = require("../../files/files.service");
 const xml_1 = require("../xml");
 const time_conditions_service_1 = require("../time-conditions/time-conditions.service");
 const pbx_meta_service_1 = require("../meta/pbx-meta.service");
+const trunks_service_1 = require("../trunks/trunks.service");
 let OptionsController = class OptionsController {
     extensions;
+    trunks;
     queues;
     ivrs;
     timeConditions;
     sounds;
     files;
     meta;
-    constructor(extensions, queues, ivrs, timeConditions, sounds, files, meta) {
+    constructor(extensions, trunks, queues, ivrs, timeConditions, sounds, files, meta) {
         this.extensions = extensions;
+        this.trunks = trunks;
         this.queues = queues;
         this.ivrs = ivrs;
         this.timeConditions = timeConditions;
@@ -69,8 +72,13 @@ let OptionsController = class OptionsController {
             name: String(s.name ?? s.id),
             socketUrl: String(s.socketUrl),
         }));
+        const trunks = this.trunks.list().map((t) => ({
+            name: t.name,
+            isDefault: Boolean(t.isDefault),
+        }));
         return {
             extensions: ext,
+            trunks,
             queues: q,
             ivrs: ivr,
             timeConditions: tc,
@@ -80,6 +88,7 @@ let OptionsController = class OptionsController {
             domains,
             aiServices,
             defaultAiServiceId: m.defaultAiServiceId ?? null,
+            defaultTrunkName: m.defaultTrunkName ?? null,
         };
     }
     getMohClasses() {
@@ -114,6 +123,7 @@ exports.OptionsController = OptionsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('pbx/options'),
     __metadata("design:paramtypes", [extensions_service_1.ExtensionsService,
+        trunks_service_1.TrunksService,
         queues_service_1.QueuesService,
         ivr_service_1.IvrService,
         time_conditions_service_1.TimeConditionsService,

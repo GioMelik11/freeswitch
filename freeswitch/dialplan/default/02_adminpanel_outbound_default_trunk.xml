@@ -1,0 +1,25 @@
+<include>
+  <!-- Included into default context via dialplan/default.xml -->
+  <extension name="adminpanel_outbound_default_trunk" continue="true">
+    <condition field="destination_number" expression="^9(\+?[1-9][0-9]{7,14})$">
+      <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+      <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+      <action application="set" data="ringback=${adminpanel_outgoing_sound:-${us-ring}}"/>
+      <action application="lua" data="adminpanel_outgoing_ivr.lua"/>
+      <action application="set" data="call_timeout=60"/>
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="set" data="continue_on_fail=true"/>
+      <action application="bridge" data="sofia/gateway/${adminpanel_outbound_trunk:-sip_trunk_provider}/$1"/>
+    </condition>
+    <condition field="destination_number" expression="^(\+?[1-9][0-9]{7,14})$">
+      <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
+      <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
+      <action application="set" data="ringback=${adminpanel_outgoing_sound:-${us-ring}}"/>
+      <action application="lua" data="adminpanel_outgoing_ivr.lua"/>
+      <action application="set" data="call_timeout=60"/>
+      <action application="set" data="hangup_after_bridge=true"/>
+      <action application="set" data="continue_on_fail=true"/>
+      <action application="bridge" data="sofia/gateway/${adminpanel_outbound_trunk:-sip_trunk_provider}/${destination_number}"/>
+    </condition>
+  </extension>
+</include>

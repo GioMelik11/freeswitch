@@ -34,6 +34,7 @@ let PbxBootstrapService = class PbxBootstrapService {
             this.dialplan.writeTrunkInbound(meta);
             this.dialplan.writeOutboundDefaults(meta);
             this.dialplan.writeOutboundPrefixRoutes(meta);
+            this.dialplan.writeOutboundDefaultTrunkRoutes(meta);
             this.dialplan.writeQueues(meta);
             const list = this.extensions.list();
             const services = new Map();

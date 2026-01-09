@@ -32,6 +32,11 @@ export class TrunksController {
     return this.svc.upsert(dto);
   }
 
+  @Post(':name/default')
+  makeDefault(@Param('name') name: string) {
+    return this.svc.setDefault(name);
+  }
+
   @Delete(':name')
   delete(@Param('name') name: string, @Query('etag') etag?: string) {
     return this.svc.delete(name, etag);

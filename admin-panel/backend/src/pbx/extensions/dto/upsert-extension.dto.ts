@@ -29,6 +29,12 @@ export class UpsertExtensionDto {
   @IsString()
   outgoingIvr?: string;
 
+  // Optional: choose which trunk (gateway) this extension uses for outbound calls.
+  // If empty/undefined, PBX default trunk is used.
+  @IsOptional()
+  @IsString()
+  outboundTrunk?: string;
+
   // If set, calls that do not get answered by this extension can be forwarded to an external number (mobile)
   @IsOptional()
   @IsString()
