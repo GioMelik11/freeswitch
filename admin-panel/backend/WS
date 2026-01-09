@@ -1,0 +1,4 @@
++OK [Success]
+
+-USAGE: <call url> <exten>|&<application_name>(<app_args>) [<dialplan>] [<context>] [<cid_name>] [<cid_num>] [<timeout_sec>]
+

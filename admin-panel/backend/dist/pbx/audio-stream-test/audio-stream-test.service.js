@@ -51,6 +51,7 @@ const ws_1 = require("ws");
 let AudioStreamTestService = class AudioStreamTestService {
     config;
     wss = null;
+    loggedIn = 0;
     constructor(config) {
         this.config = config;
     }
@@ -71,39 +72,98 @@ let AudioStreamTestService = class AudioStreamTestService {
         console.log(`🧪 mod_audio_stream test WS server listening: ws://0.0.0.0:${port} (file=${wavPath})`);
         this.wss.on('connection', (ws, req) => {
             const remote = req.socket.remoteAddress || '';
-            console.log(`🧪 test WS connected from ${remote} path=${req.url ?? '/'}`);
-            try {
-                const wav = fs.readFileSync(wavPath);
-                let sr = 8000;
+            const url = String(req.url ?? '/');
+            const mode = url.includes('echo') ? 'echo' : 'wav';
+            console.log(`🧪 test WS connected from ${remote} path=${url} mode=${mode}`);
+            ws.on('message', (data, isBinary) => {
+                if (this.loggedIn >= 5)
+                    return;
+                this.loggedIn++;
                 try {
-                    if (wav.length >= 28 && wav.toString('ascii', 0, 4) === 'RIFF') {
-                        sr = wav.readUInt32LE(24) || sr;
-                    }
+                    const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+                    const s = buf.toString();
+                    console.log(`🧪 FS->WS msg#${this.loggedIn} bytes=${buf.length} bin=${isBinary} ${s.slice(0, 400)}`);
                 }
-                catch {
+                catch (e) {
+                    console.log(`🧪 FS->WS msg#${this.loggedIn} (unprintable) err=${e?.message ?? e}`);
                 }
-                const payload = {
-                    type: 'streamAudio',
-                    data: {
-                        audioDataType: 'wav',
-                        sampleRate: sr,
-                        audioData: wav.toString('base64'),
-                    },
-                };
-                ws.send(JSON.stringify(payload));
-                setTimeout(() => {
+            });
+            if (mode === 'echo') {
+                ws.on('message', (data, isBinary) => {
+                    if (!isBinary)
+                        return;
                     try {
-                        if (ws.readyState === ws.OPEN)
-                            ws.send(JSON.stringify(payload));
+                        const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+                        if (ws.readyState !== ws.OPEN)
+                            return;
+                        ws.send(buf);
                     }
                     catch {
                     }
-                }, 700);
+                });
+                return;
+            }
+            try {
+                const wav = fs.readFileSync(wavPath);
+                const { pcm, sampleRate } = this.extractWavPcm16Mono(wav);
+                const pcm16k = sampleRate === 16000 ? pcm : this.resamplePcm16(pcm, sampleRate, 16000);
+                const frameBytes = 640;
+                let offset = 0;
+                console.log(`🧪 WS->FS streaming raw pcm16: in_sr=${sampleRate} out_sr=16000 bytes=${pcm16k.length} frameBytes=${frameBytes}`);
+                const iv = setInterval(() => {
+                    try {
+                        if (ws.readyState !== ws.OPEN) {
+                            clearInterval(iv);
+                            return;
+                        }
+                        if (offset >= pcm16k.length) {
+                            clearInterval(iv);
+                            return;
+                        }
+                        const chunk = pcm16k.subarray(offset, offset + frameBytes);
+                        offset += frameBytes;
+                        ws.send(chunk);
+                    }
+                    catch {
+                        clearInterval(iv);
+                    }
+                }, 20);
+                ws.on('close', () => clearInterval(iv));
             }
             catch (e) {
                 console.error(`🧪 test WS failed to read/send wav: ${e?.message ?? e}`);
             }
         });
+    }
+    extractWavPcm16Mono(wav) {
+        if (wav.length < 44 || wav.toString('ascii', 0, 4) !== 'RIFF') {
+            return { pcm: wav, sampleRate: 16000 };
+        }
+        const sampleRate = wav.readUInt32LE(24) || 16000;
+        const channels = wav.readUInt16LE(22) || 1;
+        const bits = wav.readUInt16LE(34) || 16;
+        if (channels !== 1 || bits !== 16) {
+        }
+        const pcm = wav.subarray(44);
+        return { pcm, sampleRate };
+    }
+    resamplePcm16(pcm, fromRate, toRate) {
+        if (fromRate === toRate)
+            return pcm;
+        const inSamples = pcm.length / 2;
+        const outSamples = Math.max(1, Math.floor(inSamples * (toRate / fromRate)));
+        const out = Buffer.alloc(outSamples * 2);
+        for (let i = 0; i < outSamples; i++) {
+            const t = i * (fromRate / toRate);
+            const i0 = Math.floor(t);
+            const i1 = Math.min(inSamples - 1, i0 + 1);
+            const frac = t - i0;
+            const s0 = pcm.readInt16LE(i0 * 2);
+            const s1 = pcm.readInt16LE(i1 * 2);
+            const v = Math.round(s0 + (s1 - s0) * frac);
+            out.writeInt16LE(Math.max(-32768, Math.min(32767, v)), i * 2);
+        }
+        return out;
     }
 };
 exports.AudioStreamTestService = AudioStreamTestService;
