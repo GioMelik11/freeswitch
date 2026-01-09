@@ -76,7 +76,7 @@
     <param name="disable-transcoding" value="false"/>
     <param name="rtp-nat-helper" value="true"/>
     <param name="rtp-rewrite-timestamps" value="true"/>
-    <param name="local-network-acl" value="localnet.auto"/>
+    <param name="local-network-acl" value="adminpanel_localnet"/>
     <param name="disable-hold" value="false"/>
     <param name="rtp-autoflush" value="true"/>
     <param name="suppress-cng" value="true"/>

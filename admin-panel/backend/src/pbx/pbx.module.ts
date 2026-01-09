@@ -22,6 +22,10 @@ import { AiService } from './ai/ai.service';
 import { FreeswitchController } from './freeswitch/freeswitch.controller';
 import { ConsoleController } from './console/console.controller';
 import { ConsoleService } from './console/console.service';
+import { NatController } from './nat/nat.controller';
+import { NatService } from './nat/nat.service';
+import { SettingsController } from './settings/settings.controller';
+import { SettingsService } from './settings/settings.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -37,6 +41,8 @@ import { ConsoleService } from './console/console.service';
     AiController,
     FreeswitchController,
     ConsoleController,
+    NatController,
+    SettingsController,
   ],
   providers: [
     ExtensionsService,
@@ -48,6 +54,8 @@ import { ConsoleService } from './console/console.service';
     EslService,
     AiService,
     ConsoleService,
+    NatService,
+    SettingsService,
   ],
 })
 export class PbxModule {}

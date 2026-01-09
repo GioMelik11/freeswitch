@@ -31,6 +31,10 @@ const ai_service_1 = require("./ai/ai.service");
 const freeswitch_controller_1 = require("./freeswitch/freeswitch.controller");
 const console_controller_1 = require("./console/console.controller");
 const console_service_1 = require("./console/console.service");
+const nat_controller_1 = require("./nat/nat.controller");
+const nat_service_1 = require("./nat/nat.service");
+const settings_controller_1 = require("./settings/settings.controller");
+const settings_service_1 = require("./settings/settings.service");
 let PbxModule = class PbxModule {
 };
 exports.PbxModule = PbxModule;
@@ -49,6 +53,8 @@ exports.PbxModule = PbxModule = __decorate([
             ai_controller_1.AiController,
             freeswitch_controller_1.FreeswitchController,
             console_controller_1.ConsoleController,
+            nat_controller_1.NatController,
+            settings_controller_1.SettingsController,
         ],
         providers: [
             extensions_service_1.ExtensionsService,
@@ -60,6 +66,8 @@ exports.PbxModule = PbxModule = __decorate([
             esl_service_1.EslService,
             ai_service_1.AiService,
             console_service_1.ConsoleService,
+            nat_service_1.NatService,
+            settings_service_1.SettingsService,
         ],
     })
 ], PbxModule);

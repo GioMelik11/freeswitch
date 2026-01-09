@@ -11,6 +11,9 @@ import { TimeConditionsPage } from './pages/time-conditions.page';
 import { SoundsPage } from './pages/sounds.page';
 import { AiPage } from './pages/ai.page';
 import { ConsolePage } from './pages/console.page';
+import { NatPage } from './pages/nat.page';
+import { AdvancedSettingsPage } from './pages/advanced-settings.page';
+import { SipSettingsPage } from './pages/sip-settings.page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -28,6 +31,9 @@ export const routes: Routes = [
       { path: 'pbx/trunks', component: TrunksPage },
       { path: 'console', component: ConsolePage },
       { path: 'ai', component: AiPage },
+      { path: 'nat', component: NatPage },
+      { path: 'settings/advanced', component: AdvancedSettingsPage },
+      { path: 'settings/sip', component: SipSettingsPage },
       { path: 'sounds', component: SoundsPage },
       { path: 'files', component: FilesPage },
     ],

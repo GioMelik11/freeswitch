@@ -81,6 +81,24 @@ import { ToastService } from '../shared/toast.service';
               >AI</a
             >
             <a
+              routerLink="/app/nat"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >NAT</a
+            >
+            <a
+              routerLink="/app/settings/sip"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >SIP Settings</a
+            >
+            <a
+              routerLink="/app/settings/advanced"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Advanced Settings</a
+            >
+            <a
               routerLink="/app/pbx/trunks"
               routerLinkActive="bg-slate-800/50 text-white"
               class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"

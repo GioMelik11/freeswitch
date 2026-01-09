@@ -18,9 +18,11 @@
   <X-PRE-PROCESS cmd="set" data="rtp_start_port=10000"/>
   <X-PRE-PROCESS cmd="set" data="rtp_end_port=20000"/>
 
-  <!-- RTP IP settings - Asterisk-style NAT handling -->
-  <X-PRE-PROCESS cmd="set" data="external_rtp_ip=$${local_ip_v4}"/>
-  <X-PRE-PROCESS cmd="set" data="external_sip_ip=$${local_ip_v4}"/>
+  <!-- RTP/SIP external IP settings
+       IMPORTANT: external_* MUST be a publicly reachable IP (or auto-nat if it resolves correctly).
+       If providers can't reach the Contact address, inbound calls will fail with no dialplan logs. -->
+  <X-PRE-PROCESS cmd="set" data="external_rtp_ip=109.172.130.157"/>
+  <X-PRE-PROCESS cmd="set" data="external_sip_ip=109.172.130.157"/>
 
   <!-- Force local RTP for internal calls -->
   <X-PRE-PROCESS cmd="set" data="local_rtp_ip=$${local_ip_v4}"/>
