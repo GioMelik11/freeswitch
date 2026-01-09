@@ -8,23 +8,11 @@
   -->
   <extension name="ws_voice_echo_test_9998">
     <condition field="destination_number" expression="^9998$">
-      <!-- Disable per-message deflate (variable name is inverted in mod_audio_stream docs) -->
-      <action application="set" data="STREAM_MESSAGE_DEFLATE=true"/>
-      <action application="set" data="STREAM_SUPPRESS_LOG=false"/>
-      <action application="set" data="STREAM_BUFFER_SIZE=20"/>
-
       <action application="answer"/>
-
-      <!-- Optional: short beep before streaming starts (so the beep itself is NOT echoed back) -->
-      <!-- <action application="playback" data="tone_stream://%(250,0,1000,1000)"/> -->
-
-      <!-- Start streaming after answer. Use mono so we only capture caller audio (your mic). -->
-      <action application="api" data="uuid_audio_stream ${uuid} start ws://127.0.0.1:9096/echo mono 8000"/>
-
-      <!-- Keep the call open for 10 minutes so you can speak and hear the echo -->
-      <action application="sleep" data="600000"/>
-
-      <action application="hangup"/>
+      <action application="uuid_audio_stream" data="start ws://127.0.0.1:9096 mono 8000"/>
+      <!-- mono/mixed/stereo, sample rate 8000/16000 -->
+      <action application="park"/>
+      <!-- Keeps call open -->
     </condition>
   </extension>
 
