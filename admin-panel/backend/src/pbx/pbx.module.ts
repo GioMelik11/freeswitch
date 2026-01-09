@@ -60,4 +60,4 @@ import { PbxBootstrapService } from './pbx-bootstrap.service';
     PbxBootstrapService,
   ],
 })
-export class PbxModule {}
+export class PbxModule { }
