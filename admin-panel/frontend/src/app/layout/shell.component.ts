@@ -87,6 +87,12 @@ import { ToastService } from '../shared/toast.service';
               >Trunks</a
             >
             <a
+              routerLink="/app/console"
+              routerLinkActive="bg-slate-800/50 text-white"
+              class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"
+              >Console</a
+            >
+            <a
               routerLink="/app/files"
               routerLinkActive="bg-slate-800/50 text-white"
               class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800/30"

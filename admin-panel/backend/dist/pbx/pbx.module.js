@@ -29,6 +29,8 @@ const dialplan_module_1 = require("./dialplan/dialplan.module");
 const ai_controller_1 = require("./ai/ai.controller");
 const ai_service_1 = require("./ai/ai.service");
 const freeswitch_controller_1 = require("./freeswitch/freeswitch.controller");
+const console_controller_1 = require("./console/console.controller");
+const console_service_1 = require("./console/console.service");
 let PbxModule = class PbxModule {
 };
 exports.PbxModule = PbxModule;
@@ -46,6 +48,7 @@ exports.PbxModule = PbxModule = __decorate([
             status_controller_1.StatusController,
             ai_controller_1.AiController,
             freeswitch_controller_1.FreeswitchController,
+            console_controller_1.ConsoleController,
         ],
         providers: [
             extensions_service_1.ExtensionsService,
@@ -56,6 +59,7 @@ exports.PbxModule = PbxModule = __decorate([
             sounds_service_1.SoundsService,
             esl_service_1.EslService,
             ai_service_1.AiService,
+            console_service_1.ConsoleService,
         ],
     })
 ], PbxModule);

@@ -10,6 +10,7 @@ import { IvrsPage } from './pages/ivrs.page';
 import { TimeConditionsPage } from './pages/time-conditions.page';
 import { SoundsPage } from './pages/sounds.page';
 import { AiPage } from './pages/ai.page';
+import { ConsolePage } from './pages/console.page';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -25,6 +26,7 @@ export const routes: Routes = [
       { path: 'pbx/ivrs', component: IvrsPage },
       { path: 'pbx/time-conditions', component: TimeConditionsPage },
       { path: 'pbx/trunks', component: TrunksPage },
+      { path: 'console', component: ConsolePage },
       { path: 'ai', component: AiPage },
       { path: 'sounds', component: SoundsPage },
       { path: 'files', component: FilesPage },

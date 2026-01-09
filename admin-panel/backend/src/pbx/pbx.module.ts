@@ -20,6 +20,8 @@ import { DialplanModule } from './dialplan/dialplan.module';
 import { AiController } from './ai/ai.controller';
 import { AiService } from './ai/ai.service';
 import { FreeswitchController } from './freeswitch/freeswitch.controller';
+import { ConsoleController } from './console/console.controller';
+import { ConsoleService } from './console/console.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -34,6 +36,7 @@ import { FreeswitchController } from './freeswitch/freeswitch.controller';
     StatusController,
     AiController,
     FreeswitchController,
+    ConsoleController,
   ],
   providers: [
     ExtensionsService,
@@ -44,6 +47,7 @@ import { FreeswitchController } from './freeswitch/freeswitch.controller';
     SoundsService,
     EslService,
     AiService,
+    ConsoleService,
   ],
 })
 export class PbxModule {}
