@@ -1,0 +1,19 @@
+<include>
+    <gateway name="sip_trunk_provider">
+        <param name="username" value="1054965e4"/>
+        <param name="realm" value="89.150.1.126"/>
+        <param name="password" value="HCXPNV"/>
+        <param name="proxy" value="89.150.1.126"/>
+        <param name="register-proxy" value="89.150.1.126"/>
+        <param name="outbound-proxy" value="89.150.1.126"/>
+        <param name="register" value="true"/>
+        <param name="register-transport" value="udp"/>
+        <param name="retry-seconds" value="30"/>
+        <param name="register-timeout" value="20"/>
+        <param name="register-retry-timeout" value="20"/>
+        <param name="caller-id-in-from" value="true"/>
+        <param name="extension" value="2200405"/>
+        <param name="from-user" value="1054965e4"/>
+        <param name="from-domain" value="89.150.1.126"/>
+    </gateway>
+</include>

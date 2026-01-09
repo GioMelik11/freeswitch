@@ -333,6 +333,7 @@ export class TrunksPage {
   tab = signal<'current' | 'prefixes'>('current');
   prefixRules = signal<Array<{ enabled?: boolean; prefix: string; prepend?: string; description?: string }>>([]);
   options = computed(() => this.opts.options());
+  inboundTypeSig = signal<string>('');
 
   soundItems = computed((): SearchSelectItem[] => {
     const o = this.options();
@@ -351,7 +352,7 @@ export class TrunksPage {
 
   inboundTargetItems = computed((): SearchSelectItem[] => {
     const o = this.options();
-    const t = this.form.controls.inboundType.value;
+    const t = this.inboundTypeSig();
     if (!o || !t) return [];
     if (t === 'extension') {
       return (o.extensions ?? []).map((e: any) => ({ value: e.id, label: e.label, group: 'Extensions' }));
@@ -398,10 +399,17 @@ export class TrunksPage {
     this.loadStatuses();
 
     this.form.controls.inboundType.valueChanges.subscribe((t) => {
-      // Reset inboundTarget when type changes to avoid saving invalid combinations.
-      const next = this.defaultInboundTarget(t);
+      const type = String(t ?? '');
+      this.inboundTypeSig.set(type);
+
+      // Only auto-reset target when user is actively editing (avoid overwriting data during form.reset).
+      if (!this.modalOpen()) return;
+      const next = this.defaultInboundTarget(type);
       this.form.controls.inboundTarget.setValue(next);
     });
+
+    // Initialize signal so computed lists work on first render/edit.
+    this.inboundTypeSig.set(this.form.controls.inboundType.value ?? '');
   }
 
   private defaultInboundTarget(type: string) {

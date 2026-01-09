@@ -91,8 +91,22 @@ export type SearchSelectItem = {
   `,
 })
 export class SearchSelectComponent {
-  @Input() items: SearchSelectItem[] = [];
-  @Input() value = '';
+  private readonly itemsSig = signal<SearchSelectItem[]>([]);
+  private readonly valueSig = signal('');
+
+  @Input() set items(v: SearchSelectItem[]) {
+    this.itemsSig.set(v ?? []);
+  }
+  get items() {
+    return this.itemsSig();
+  }
+
+  @Input() set value(v: string) {
+    this.valueSig.set(v ?? '');
+  }
+  get value() {
+    return this.valueSig();
+  }
   @Output() valueChange = new EventEmitter<string>();
 
   @Input() placeholder = 'Select...';
@@ -157,6 +171,8 @@ export class SearchSelectComponent {
   }
 
   select(v: string) {
+    // Update local signal immediately so label updates even before parent change detection runs.
+    this.valueSig.set(v);
     this.valueChange.emit(v);
     this.close();
   }

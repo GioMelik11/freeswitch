@@ -1,6 +1,6 @@
 <include>
   <extension name="adminpanel_inbound_sip_trunk_provider">
-    <!-- Included into public context via dialplan/public.xml -->
+    <!-- Match all inbound calls (included into public context via public.xml) -->
     <condition field="destination_number" expression="^(.*)$">
       <action application="set" data="effective_caller_id_number=${caller_id_number}"/>
       <action application="set" data="effective_caller_id_name=${caller_id_name}"/>
