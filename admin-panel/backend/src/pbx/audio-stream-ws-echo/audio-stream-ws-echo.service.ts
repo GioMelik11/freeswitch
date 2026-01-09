@@ -42,14 +42,14 @@ export class AudioStreamWsEchoService implements OnModuleInit {
             console.log(`[ws-echo] Connected url=${url}`);
 
             let sampleRate = 8000;
-            const delayMs = Number(process.env.AUDIO_STREAM_WS_ECHO_DELAY_MS ?? 1500);
-            const audioDataType = String(process.env.AUDIO_STREAM_WS_ECHO_AUDIO_DATA_TYPE ?? 'wav').toLowerCase();
+            const delayMs = Math.max(0, Number(process.env.AUDIO_STREAM_WS_ECHO_DELAY_MS ?? 1500));
             const queue: Array<{ ts: number; buf: Buffer }> = [];
+            let queueHead = 0;
 
             // Queue-to-WAV mode: write wav chunks into shared FS sounds directory. Lua plays/deletes them.
             const fileQueueEnabled = String(process.env.AUDIO_STREAM_WS_ECHO_FILE_QUEUE_ENABLED ?? 'false') === 'true';
             const fileQueueDir = process.env.AUDIO_STREAM_WS_ECHO_FILE_QUEUE_DIR ?? '/usr/share/freeswitch/sounds/tmp/ws-echo-q';
-            const chunkMs = Number(process.env.AUDIO_STREAM_WS_ECHO_FILE_QUEUE_CHUNK_MS ?? 100);
+            const chunkMs = Math.max(1, Number(process.env.AUDIO_STREAM_WS_ECHO_FILE_QUEUE_CHUNK_MS ?? 100));
             const callId = (() => {
                 // Expect ws://host:port/echo/<uuid> (or /echo?call=<uuid>)
                 const m = url.match(/\/echo\/([^/?#]+)/);
@@ -65,7 +65,11 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 console.log(`[ws-echo] file-queue enabled dir=${callOutDir}`);
             }
             let outSeq = 0;
-            let outBuf = Buffer.alloc(0);
+            // PCM accumulator (avoid Buffer.concat in hot loop)
+            const pcmBufs: Buffer[] = [];
+            let pcmHead = 0;
+            let pcmHeadOff = 0;
+            let pcmLen = 0;
 
             const pcmToWav = (pcm: Buffer, sr: number) => {
                 const channels = 1;
@@ -89,6 +93,30 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 return Buffer.concat([header, pcm]);
             };
 
+            const takePcmBytes = (bytesNeeded: number): Buffer => {
+                const out = Buffer.allocUnsafe(bytesNeeded);
+                let outOff = 0;
+                while (outOff < bytesNeeded) {
+                    const b = pcmBufs[pcmHead];
+                    const avail = b.length - pcmHeadOff;
+                    const take = Math.min(avail, bytesNeeded - outOff);
+                    b.copy(out, outOff, pcmHeadOff, pcmHeadOff + take);
+                    outOff += take;
+                    pcmHeadOff += take;
+                    pcmLen -= take;
+                    if (pcmHeadOff >= b.length) {
+                        pcmHead += 1;
+                        pcmHeadOff = 0;
+                        // Compact occasionally to avoid unbounded array growth
+                        if (pcmHead > 64 && pcmHead > Math.floor(pcmBufs.length / 2)) {
+                            pcmBufs.splice(0, pcmHead);
+                            pcmHead = 0;
+                        }
+                    }
+                }
+                return out;
+            };
+
             ws.on('message', (data, isBinary) => {
                 // First message can be metadata text. We optionally parse sampleRate from it.
                 if (!isBinary) {
@@ -108,16 +136,21 @@ export class AudioStreamWsEchoService implements OnModuleInit {
                 queue.push({ ts: now, buf });
 
                 // Hold a little buffer before echoing back (helps audibility with some endpoints).
-                while (queue.length && (now - queue[0].ts) >= delayMs) {
-                    const out = queue.shift()!.buf;
+                while (queueHead < queue.length && (now - queue[queueHead].ts) >= delayMs) {
+                    const out = queue[queueHead]!.buf;
+                    queueHead += 1;
+                    if (queueHead > 1024 && queueHead > Math.floor(queue.length / 2)) {
+                        queue.splice(0, queueHead);
+                        queueHead = 0;
+                    }
 
                     // FILE QUEUE MODE (your requested approach): write WAV chunks for Lua to play/delete.
                     if (fileQueueEnabled) {
-                        outBuf = Buffer.concat([outBuf, out]);
+                        pcmBufs.push(out);
+                        pcmLen += out.length;
                         const bytesPerChunk = Math.max(1, Math.floor(sampleRate * (chunkMs / 1000) * 2)); // 16-bit mono
-                        while (outBuf.length >= bytesPerChunk) {
-                            const pcmChunk = outBuf.subarray(0, bytesPerChunk);
-                            outBuf = outBuf.subarray(bytesPerChunk);
+                        while (pcmLen >= bytesPerChunk) {
+                            const pcmChunk = takePcmBytes(bytesPerChunk);
                             const wavChunk = pcmToWav(pcmChunk, sampleRate);
                             const fname = `chunk_${String(outSeq).padStart(6, '0')}.wav`;
                             const fpath = path.join(callOutDir, fname);
