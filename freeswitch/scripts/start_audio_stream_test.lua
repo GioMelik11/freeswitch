@@ -44,8 +44,18 @@ end
 -- Use "mixed" so the stream includes the caller's microphone audio (read) as well as any audio
 -- FreeSWITCH plays to the caller (write). This is important for /echo tests: if we stream only
 -- the write direction, there may be nothing to echo back.
-local mix = "mixed"
-local rate = "16k"
+-- Allow overriding mix/rate from dialplan:
+--   start_audio_stream_test.lua [/echo|ws://...] [mono|mixed|stereo] [8000|16000]
+local mix = argv_or(2, "mixed")
+if mix ~= "mono" and mix ~= "mixed" and mix ~= "stereo" then
+    mix = "mixed"
+end
+
+-- Default to 8000 because most SIP calls here are PCMA/PCMU 8k and matching rates reduces surprises.
+local rate = argv_or(3, "8000")
+if rate ~= "8000" and rate ~= "16000" then
+    rate = "8000"
+end
 local meta = "{\"mode\":\"test\"}"
 
 local api = freeswitch.API()

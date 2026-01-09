@@ -20,8 +20,10 @@ if not uuid:match("^[0-9a-f]+$") or #uuid ~= 32 then
     return
 end
 
-local backend_host = argv[2] or "172.17.100.11"  -- Backend service IP
-local backend_port = argv[3] or "9094"
+-- Default to localhost:9098 (WSL/Docker host-network friendly).
+-- Override by passing argv[2]=host argv[3]=port from dialplan.
+local backend_host = argv[2] or "127.0.0.1"
+local backend_port = argv[3] or "9098"
 
 freeswitch.consoleLog("INFO", "AudioSocket Client: Connecting to " .. backend_host .. ":" .. backend_port .. " for call " .. uuid .. "\n")
 
@@ -60,35 +62,63 @@ tcp:settimeout(0)
 -- Stream audio
 local function stream_audio()
     local chunk_size = 320  -- 20ms of 8kHz PCM
-    local audio_data = session:read(chunk_size, "L16", 8000)
-    
-    while audio_data do
-        -- Send audio packet (type 0x10)
-        local audio_len = #audio_data
-        local header = string.char(0x10) .. string.char(math.floor(audio_len / 256)) .. string.char(audio_len % 256)
-        tcp:send(header .. audio_data)
-        
-        -- Try to receive audio from backend
+
+    local sent = 0
+    local received_frames = 0
+    while session:ready() do
+        local ok_read, audio_data = pcall(function()
+            return session:read(chunk_size, "L16", 8000)
+        end)
+        if not ok_read then
+            freeswitch.consoleLog("ERR", "AudioSocket Client: session:read failed: " .. tostring(audio_data) .. "\n")
+            session:sleep(50)
+            break
+        end
+
+        if audio_data and #audio_data > 0 then
+            -- Send audio packet (type 0x10)
+            local audio_len = #audio_data
+            local header = string.char(0x10) .. string.char(math.floor(audio_len / 256)) .. string.char(audio_len % 256)
+            tcp:send(header .. audio_data)
+            sent = sent + 1
+            if sent % 100 == 0 then
+                freeswitch.consoleLog("INFO", "AudioSocket Client: sent_frames=" .. tostring(sent) .. " recv_frames=" .. tostring(received_frames) .. "\n")
+            end
+        else
+            -- No audio ready; avoid a tight loop
+            session:sleep(20)
+        end
+
+        -- Try to receive audio from backend (non-blocking)
         local received = tcp:receive(3)  -- Read header
         if received and #received == 3 then
             local msg_type = string.byte(received, 1)
             local payload_len = string.byte(received, 2) * 256 + string.byte(received, 3)
-            
+
             if msg_type == 0x10 and payload_len > 0 then
                 local audio_payload = tcp:receive(payload_len)
-                if audio_payload then
-                    session:write(audio_payload, "L16", 8000)
+                if audio_payload and #audio_payload > 0 then
+                    local ok_write, err_write = pcall(function()
+                        session:write(audio_payload, "L16", 8000)
+                    end)
+                    if not ok_write then
+                        freeswitch.consoleLog("ERR", "AudioSocket Client: session:write failed: " .. tostring(err_write) .. "\n")
+                        session:sleep(50)
+                        break
+                    end
+                    received_frames = received_frames + 1
                 end
             end
         end
-        
-        audio_data = session:read(chunk_size, "L16", 8000)
     end
 end
 
 -- Start streaming in a separate thread
 session:setAutoHangup(false)
-stream_audio()
+local ok_stream, err_stream = pcall(stream_audio)
+if not ok_stream then
+    freeswitch.consoleLog("ERR", "AudioSocket Client: stream_audio crashed: " .. tostring(err_stream) .. "\n")
+end
 
 -- Cleanup
 tcp:close()
