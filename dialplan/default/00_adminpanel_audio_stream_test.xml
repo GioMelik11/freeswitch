@@ -9,7 +9,7 @@
   <extension name="ws_voice_echo_test_9998">
     <condition field="destination_number" expression="^9998$">
       <action application="answer"/>
-      <action application="uuid_audio_stream" data="start ws://127.0.0.1:9096 mono 8000"/>
+      <action application="uuid_audio_stream" data="start ws://127.0.0.1:9096/echo mono 8000"/>
       <!-- mono/mixed/stereo, sample rate 8000/16000 -->
       <action application="park"/>
       <!-- Keeps call open -->

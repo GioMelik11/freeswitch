@@ -23,7 +23,7 @@ export class AudioStreamWsEchoService implements OnModuleInit {
 
         const port = Number(this.config.get('AUDIO_STREAM_WS_ECHO_PORT') ?? 9096);
 
-        const wss = new WebSocketServer({ port });
+        const wss = new WebSocketServer({ port, host: '0.0.0.0' });
 
         wss.on('connection', (ws) => {
             console.log('Connected');
