@@ -3,5 +3,5 @@ docker save -o "freeswitch-backup.tar" freeswitch:latest
 
 # To restore freeswitch container on a new server:
 # 1. Move freeswitch-backup.tar to /root folder
-# 2. Load the image:
-docker load -i /root/freeswitch-backup.tar
+# 2. import the image:
+docker import /root/freeswitch-backup.tar freeswitch:latest
