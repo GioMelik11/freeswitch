@@ -125,15 +125,12 @@ let ConsoleService = ConsoleService_1 = class ConsoleService {
         const authText = (auth.body || '').trim() || (auth.headers['reply-text'] ?? '');
         if (!authText.startsWith('+OK'))
             throw new Error(`ESL auth failed: ${authText}`);
-        socket.write('event plain ALL\n\n');
-        this.push('[console] connected (event plain ALL)');
+        socket.write('log 7\n\n');
+        this.push('[console] connected (log 7)');
         while (!this.stop) {
             const frame = await this.readFrame(socket);
-            const eventName = frame.headers['event-name'] ?? frame.headers['content-type'] ?? '';
             const body = (frame.body ?? '').trim();
-            const text = body
-                ? `${eventName}\n${body}`
-                : `${eventName} ${frame.headers['reply-text'] ?? ''}`.trim();
+            const text = body || String(frame.headers['reply-text'] ?? '').trim();
             if (text)
                 this.push(text);
         }

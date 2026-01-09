@@ -94,18 +94,16 @@ export class ConsoleService implements OnModuleInit, OnModuleDestroy {
     const authText = (auth.body || '').trim() || (auth.headers['reply-text'] ?? '');
     if (!authText.startsWith('+OK')) throw new Error(`ESL auth failed: ${authText}`);
 
-    // Subscribe to events. "plain ALL" is closest to fs_cli live view.
-    socket.write('event plain ALL\n\n');
-    this.push('[console] connected (event plain ALL)');
+    // Stream console logs similar to fs_cli live output.
+    // Level 7 is "debug" and includes everything; user can filter client-side.
+    socket.write('log 7\n\n');
+    this.push('[console] connected (log 7)');
 
     // stream loop
     while (!this.stop) {
       const frame = await this.readFrame(socket);
-      const eventName = frame.headers['event-name'] ?? frame.headers['content-type'] ?? '';
       const body = (frame.body ?? '').trim();
-      const text = body
-        ? `${eventName}\n${body}`
-        : `${eventName} ${frame.headers['reply-text'] ?? ''}`.trim();
+      const text = body || String(frame.headers['reply-text'] ?? '').trim();
       if (text) this.push(text);
     }
   }

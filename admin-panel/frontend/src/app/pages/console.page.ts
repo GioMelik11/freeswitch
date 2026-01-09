@@ -109,7 +109,17 @@ type TailResp = { now: number; items: Array<{ ts: number; text: string }> };
           </button>
         </div>
 
-        <pre class="h-[520px] overflow-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-200 whitespace-pre-wrap">{{ filteredLiveText() }}</pre>
+        <div class="h-[520px] overflow-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3 font-mono text-xs">
+          @for (x of filteredLive(); track x.ts) {
+            <div class="whitespace-pre-wrap mb-3" [class]="levelClass(x.text)">
+              <span class="text-slate-500">[{{ fmtTime(x.ts) }}]</span>
+              {{ ' ' + x.text }}
+            </div>
+          }
+          @if (filteredLive().length === 0) {
+            <div class="text-slate-500">No events yet.</div>
+          }
+        </div>
       </div>
     }
   `,
@@ -132,18 +142,35 @@ export class ConsolePage {
   tail = signal<Array<{ ts: number; text: string }>>([]);
   private since = 0;
 
-  filteredLiveText = computed(() => {
+  filteredLive = computed(() => {
     const q = (this.filter || '').trim().toLowerCase();
     const lines = this.tail();
-    const texts = q
+    return q
       ? lines.filter((x) => x.text.toLowerCase().includes(q))
       : lines;
-    return texts.map((x) => `[${new Date(x.ts).toLocaleTimeString()}] ${x.text}`).join('\n\n');
   });
 
   constructor() {
     const t = setInterval(() => this.poll(), 1000);
     this.destroyRef.onDestroy(() => clearInterval(t));
+  }
+
+  fmtTime(ts: number) {
+    try {
+      return new Date(ts).toLocaleTimeString();
+    } catch {
+      return '';
+    }
+  }
+
+  levelClass(text: string) {
+    const t = text.toLowerCase();
+    if (t.includes('[err]') || t.includes(' error ') || t.startsWith('error')) return 'text-red-200';
+    if (t.includes('[warning]') || t.includes(' warn ')) return 'text-amber-200';
+    if (t.includes('[notice]')) return 'text-emerald-200';
+    if (t.includes('[info]')) return 'text-sky-200';
+    if (t.includes('[debug]')) return 'text-slate-400';
+    return 'text-slate-200';
   }
 
   use(cmd: string) {
