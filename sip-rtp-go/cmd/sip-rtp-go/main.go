@@ -352,6 +352,8 @@ type runtimeState struct {
 
 	// which extensions are currently enabled for SIP AI
 	enabledExt map[string]bool
+	// if set, calls are considered "AI mode" (Gemini integration later)
+	geminiSocketURL string
 
 	// registration workers by extension id
 	workers map[string]*regWorker
@@ -365,6 +367,7 @@ type callSession struct {
 	extID  string
 	rtp    net.PacketConn
 	stopCh chan struct{}
+	echo  bool
 }
 
 func main() {
@@ -518,7 +521,7 @@ func waitSIPResponse(conn net.PacketConn, timeout time.Duration, forMethod strin
 }
 
 func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
-	apply := func(exts []string) {
+	apply := func(exts []string, geminiURL string) {
 		next := map[string]bool{}
 		for _, id := range exts {
 			next[id] = true
@@ -574,6 +577,7 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 		}
 
 		st.enabledExt = next
+		st.geminiSocketURL = strings.TrimSpace(geminiURL)
 	}
 
 	// initial apply
@@ -583,7 +587,7 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 		if len(exts) == 0 && isDigits(c.sipUserFallback) {
 			exts = []string{c.sipUserFallback}
 		}
-		apply(exts)
+		apply(exts, file.GeminiSocketURL)
 		logger.Printf("sip-ai config loaded: extensions=%v gemini=%v", exts, file.GeminiSocketURL != "")
 		break
 	}
@@ -603,7 +607,7 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 		if len(exts) == 0 && isDigits(c.sipUserFallback) {
 			exts = []string{c.sipUserFallback}
 		}
-		apply(exts)
+		apply(exts, file.GeminiSocketURL)
 		logger.Printf("sip-ai config updated: extensions=%v", exts)
 	}
 }
@@ -694,6 +698,7 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 
 	st.mu.RLock()
 	enabled := st.enabledExt[extID]
+	geminiURL := strings.TrimSpace(st.geminiSocketURL)
 	_, inCall := st.calls[req.header("call-id")]
 	st.mu.RUnlock()
 
@@ -741,13 +746,20 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	}
 	sendSIPResponse(conn, addr, req, toWithTag, contact, 200, "OK", extra, []byte(sdp))
 
-	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{})}
+	// Echo ONLY when Gemini socket URL is not set.
+	echo := geminiURL == ""
+	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{}), echo: echo}
 	st.mu.Lock()
 	st.calls[callID] = cs
 	st.mu.Unlock()
 
-	go runRTPEchoCall(logger, cs)
-	logger.Printf("call answered (ext=%s rtp=%s:%d)", extID, c.sdpIP, rtpPort)
+	if echo {
+		go runRTPEchoCall(logger, cs)
+		logger.Printf("call answered (ext=%s mode=echo rtp=%s:%d)", extID, c.sdpIP, rtpPort)
+	} else {
+		go runRTPDrainCall(logger, cs)
+		logger.Printf("call answered (ext=%s mode=ai-pending rtp=%s:%d)", extID, c.sdpIP, rtpPort)
+	}
 }
 
 func buildSDP(ip string, port int) string {
@@ -902,6 +914,60 @@ func runRTPEchoCall(logger *log.Logger, cs *callSession) {
 		_, _ = cs.rtp.WriteTo(raw, addr)
 		mu.Lock()
 		tx++
+		mu.Unlock()
+	}
+}
+
+func runRTPDrainCall(logger *log.Logger, cs *callSession) {
+	// AI mode placeholder: we currently just read RTP and do not echo it back.
+	buf := make([]byte, 2048)
+	var p rtp.Packet
+
+	var (
+		mu       sync.Mutex
+		lastAddr string
+		rx       uint64
+		lastPT   uint8
+	)
+
+	t := time.NewTicker(1 * time.Second)
+	defer t.Stop()
+
+	go func() {
+		for range t.C {
+			mu.Lock()
+			a := lastAddr
+			rxi := rx
+			pt := lastPT
+			rx = 0
+			mu.Unlock()
+			if a != "" && rxi > 0 {
+				logger.Printf("rtp recv (ai-pending): ext=%s addr=%s pt=%d rx=%dpps", cs.extID, a, pt, rxi)
+			}
+		}
+	}()
+
+	for {
+		_ = cs.rtp.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+		n, addr, err := cs.rtp.ReadFrom(buf)
+		select {
+		case <-cs.stopCh:
+			return
+		default:
+		}
+		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				continue
+			}
+			return
+		}
+		if err := p.Unmarshal(buf[:n]); err != nil {
+			continue
+		}
+		mu.Lock()
+		lastAddr = addr.String()
+		lastPT = p.PayloadType
+		rx++
 		mu.Unlock()
 	}
 }
