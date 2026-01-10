@@ -33,6 +33,11 @@ export type SipAiConfigV2 = {
   agents: SipAiAgent[];
 };
 
+export type SipAiConfigPatch = {
+  defaults?: Partial<SipAiDefaults>;
+  agents?: SipAiAgent[];
+};
+
 @Injectable()
 export class SipAiService {
   private readonly cfgPath: string;
@@ -157,11 +162,11 @@ export class SipAiService {
     }
   }
 
-  update(input: Partial<SipAiConfigV2>) {
+  update(input: SipAiConfigPatch) {
     const cur = this.get();
     const merged: SipAiConfigV2 = {
-      defaults: { ...(cur.defaults as any), ...((input as any).defaults ?? {}) },
-      agents: (input as any).agents ?? cur.agents,
+      defaults: { ...(cur.defaults as any), ...(input.defaults ?? {}) },
+      agents: input.agents ?? cur.agents,
     };
     const next = this.normalize(merged);
     fs.mkdirSync(path.dirname(this.cfgPath), { recursive: true });
