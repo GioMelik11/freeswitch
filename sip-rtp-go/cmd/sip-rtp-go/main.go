@@ -749,6 +749,45 @@ func firstNonEmpty(a, b string) string {
 	return strings.TrimSpace(b)
 }
 
+func buildSessionTimerExtras(req sipMsg) map[string][]string {
+	// Some endpoints (and some FreeSWITCH configs) negotiate very short session timers (~30s).
+	// If we don't echo Session-Expires on refresh requests, the dialog can be torn down around ~32s.
+	//
+	// Strategy:
+	// - Only advertise/require timer when the peer asks for it (Session-Expires present or Require: timer).
+	// - Echo back Session-Expires / Min-SE headers verbatim when present.
+	se := strings.TrimSpace(req.header("session-expires"))
+	minSE := strings.TrimSpace(req.header("min-se"))
+	reqRequire := strings.ToLower(req.header("require"))
+
+	wantsTimer := false
+	if se != "" {
+		wantsTimer = true
+	}
+	if strings.Contains(reqRequire, "timer") {
+		wantsTimer = true
+	}
+
+	extra := map[string][]string{
+		// Always safe; timer is appended only when needed.
+		"Supported": {"replaces"},
+	}
+	if wantsTimer {
+		extra["Supported"] = []string{"replaces, timer"}
+		// If peer requires timer, echo it (safe even if not strictly required).
+		if strings.Contains(reqRequire, "timer") {
+			extra["Require"] = []string{"timer"}
+		}
+		if se != "" {
+			extra["Session-Expires"] = []string{se}
+		}
+		if minSE != "" {
+			extra["Min-SE"] = []string{minSE}
+		}
+	}
+	return extra
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -770,6 +809,15 @@ func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt
 		handleInvite(logger, conn, addr, m, c, st)
 	case "ACK":
 		// no-op
+	case "UPDATE":
+		// Session-timer refresh (RFC 3311). We don't change SDP; just acknowledge.
+		extra := map[string][]string{
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
+		}
+		for k, v := range buildSessionTimerExtras(m) {
+			extra[k] = v
+		}
+		sendSIPResponse(conn, addr, m, "", "", 200, "OK", extra, nil)
 	case "CANCEL":
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", nil, nil)
 		endCall(logger, m.header("call-id"), st)
@@ -778,7 +826,7 @@ func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt
 		endCall(logger, m.header("call-id"), st)
 	case "OPTIONS":
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
-			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS"},
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
 		}, nil)
 	default:
 		sendSIPResponse(conn, addr, m, "", "", 501, "Not Implemented", nil, nil)
@@ -837,21 +885,49 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	agent, ok := st.agentByUser[extID]
 	contactHost := st.sipContactHost
 	sdpIP := st.sdpIP
-	_, inCall := st.calls[req.header("call-id")]
+	callID := req.header("call-id")
+	existing := st.calls[callID]
 	st.mu.RUnlock()
 
 	if !ok || !agent.enabled {
 		sendSIPResponse(conn, addr, req, "", "", 404, "Not Found", nil, nil)
 		return
 	}
-	if inCall {
-		sendSIPResponse(conn, addr, req, "", "", 486, "Busy Here", nil, nil)
+
+	if callID == "" {
+		sendSIPResponse(conn, addr, req, "", "", 400, "Bad Request", nil, nil)
 		return
 	}
 
-	callID := req.header("call-id")
-	if callID == "" {
-		sendSIPResponse(conn, addr, req, "", "", 400, "Bad Request", nil, nil)
+	// In-dialog re-INVITE (common around ~30s when session timers are enabled).
+	// Previously we returned 486 which makes FreeSWITCH tear down the call.
+	if existing != nil {
+		if strings.TrimSpace(sdpIP) == "" {
+			sdpIP = detectLocalIPv4()
+		}
+		if strings.TrimSpace(contactHost) == "" {
+			contactHost = detectLocalIPv4()
+		}
+		ua, _ := existing.rtp.LocalAddr().(*net.UDPAddr)
+		rtpPort := 0
+		if ua != nil {
+			rtpPort = ua.Port
+		}
+		sdp := buildSDP(sdpIP, rtpPort)
+		_, sipListenPort, _ := net.SplitHostPort(c.sipListenAddr)
+		contact := ""
+		if sipListenPort != "" {
+			contact = fmt.Sprintf("<sip:%s@%s:%s;transport=udp>", extID, contactHost, sipListenPort)
+		}
+		extra := map[string][]string{
+			"Content-Type": {"application/sdp"},
+			"Allow":        {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
+		}
+		for k, v := range buildSessionTimerExtras(req) {
+			extra[k] = v
+		}
+		sendSIPResponse(conn, addr, req, "", contact, 200, "OK", extra, []byte(sdp))
+		logger.Printf("in-dialog re-INVITE handled (call-id=%s ext=%s)", callID, extID)
 		return
 	}
 
@@ -885,8 +961,10 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	}
 	extra := map[string][]string{
 		"Content-Type": {"application/sdp"},
-		"Allow":        {"INVITE, ACK, BYE, CANCEL, OPTIONS"},
-		"Supported":    {"replaces, timer"},
+		"Allow":        {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
+	}
+	for k, v := range buildSessionTimerExtras(req) {
+		extra[k] = v
 	}
 	sendSIPResponse(conn, addr, req, toWithTag, contact, 200, "OK", extra, []byte(sdp))
 
@@ -1094,7 +1172,8 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 	logger.Printf("ws stream: connected url=%q (ext=%s call-id=%s)", wsURL, cs.extID, cs.callID)
 
 	// Single playback worker: stable SSRC/seq/ts and one RTP sender.
-	playQ := make(chan []int16, 32)
+	// Keep a larger queue so bursts from WS don't drop chunks (dropped chunks = "missing words").
+	playQ := make(chan []int16, 256)
 	playSSRC := rand.Uint32()
 	playSeq := uint16(rand.Uint32())
 	playTS := uint32(rand.Uint32())
@@ -1144,8 +1223,13 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 				// Cap buffer to avoid runaway latency (keep last ~2 seconds max).
 				const maxSamples = 8000 * 2
 				if len(buf)+len(pcm) > maxSamples {
-					// drop existing buffer; keep newest chunk
-					buf = buf[:0]
+					// drop oldest samples, keep most recent audio
+					excess := (len(buf) + len(pcm)) - maxSamples
+					if excess >= len(buf) {
+						buf = nil
+					} else if excess > 0 {
+						buf = buf[excess:]
+					}
 				}
 				buf = append(buf, pcm...)
 			case <-t.C:
@@ -1317,9 +1401,21 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 			}
 
 			// enqueue for single playback worker
+			// Never silently drop whole chunks (causes missing words).
+			// If queue is full, drop one older chunk to make room and log once in a while.
 			select {
 			case playQ <- pcm8k:
 			default:
+				select {
+				case <-playQ:
+				default:
+				}
+				select {
+				case playQ <- pcm8k:
+				case <-time.After(20 * time.Millisecond):
+					// give up; better to drop than block websocket read forever
+					logger.Printf("ws stream: playback queue full, dropping chunk (ext=%s call-id=%s)", cs.extID, cs.callID)
+				}
 			}
 		}
 	}()
