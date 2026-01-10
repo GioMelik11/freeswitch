@@ -407,6 +407,68 @@ type callSession struct {
 	rtp    net.PacketConn
 	stopCh chan struct{}
 	echo   bool
+	// Best-effort remote RTP peer from SDP (so we can start sending immediately).
+	remoteRtp net.Addr
+}
+
+func parseSDPRtpAddr(body []byte, sipSrc net.Addr) net.Addr {
+	// Minimal SDP parser:
+	// - remote IP from "c=IN IP4 <ip>" (session or media level)
+	// - remote port from "m=audio <port> RTP/AVP ..."
+	//
+	// Fallback remote IP: SIP source IP.
+	s := string(body)
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+
+	remoteIP := ""
+	remotePort := 0
+
+	// split by both CRLF and LF
+	lines := strings.Split(s, "\n")
+	for _, ln := range lines {
+		ln = strings.TrimSpace(strings.TrimRight(ln, "\r"))
+		if ln == "" {
+			continue
+		}
+		lower := strings.ToLower(ln)
+		if strings.HasPrefix(lower, "c=in ip4 ") {
+			ip := strings.TrimSpace(ln[len("c=IN IP4 "):])
+			// Some SDPs include "c=IN IP4 <ip>/<ttl>/<num>" — keep first token before "/"
+			if i := strings.IndexByte(ip, '/'); i >= 0 {
+				ip = ip[:i]
+			}
+			if net.ParseIP(ip) != nil {
+				remoteIP = ip
+			}
+		}
+		if strings.HasPrefix(lower, "m=audio ") {
+			// m=audio <port> RTP/AVP ...
+			fields := strings.Fields(ln)
+			if len(fields) >= 2 {
+				if p, err := strconv.Atoi(fields[1]); err == nil && p > 0 && p < 65536 {
+					remotePort = p
+				}
+			}
+		}
+	}
+
+	if remoteIP == "" {
+		if ua, ok := sipSrc.(*net.UDPAddr); ok && ua.IP != nil {
+			remoteIP = ua.IP.String()
+		} else {
+			// try parse from "host:port"
+			host, _, err := net.SplitHostPort(sipSrc.String())
+			if err == nil && host != "" {
+				remoteIP = host
+			}
+		}
+	}
+	if remoteIP == "" || remotePort == 0 {
+		return nil
+	}
+	return &net.UDPAddr{IP: net.ParseIP(remoteIP), Port: remotePort}
 }
 
 func main() {
@@ -779,13 +841,42 @@ func buildSessionTimerExtras(req sipMsg) map[string][]string {
 			extra["Require"] = []string{"timer"}
 		}
 		if se != "" {
-			extra["Session-Expires"] = []string{se}
+			// If refresher=uas is negotiated, *we* would be responsible to send the refresh.
+			// sip-rtp-go doesn't initiate refreshes, so force refresher=uac to make FreeSWITCH refresh.
+			extra["Session-Expires"] = []string{forceSessionExpiresRefresherUAC(se)}
 		}
 		if minSE != "" {
 			extra["Min-SE"] = []string{minSE}
 		}
 	}
 	return extra
+}
+
+func forceSessionExpiresRefresherUAC(se string) string {
+	// Input examples:
+	// "30;refresher=uas"
+	// "30;refresher=uac"
+	// "1800"
+	// "30;refresher=uas;something=else"
+	s := strings.TrimSpace(se)
+	if s == "" {
+		return s
+	}
+	parts := strings.Split(s, ";")
+	out := make([]string, 0, len(parts)+1)
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		// Drop any existing refresher=...
+		if strings.HasPrefix(strings.ToLower(p), "refresher=") {
+			continue
+		}
+		out = append(out, p)
+	}
+	out = append(out, "refresher=uac")
+	return strings.Join(out, ";")
 }
 
 func max(a, b int) int {
@@ -808,11 +899,28 @@ func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt
 	case "INVITE":
 		handleInvite(logger, conn, addr, m, c, st)
 	case "ACK":
-		// no-op
+		// ACK confirms the 200 OK for INVITE. Log it because missing ACK is a classic ~32s hangup cause.
+		logger.Printf("sip recv: ACK call-id=%s from=%s", m.header("call-id"), addr.String())
+	case "INFO":
+		// Some endpoints use INFO for keepalive/DTMF; acknowledge.
+		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE, INFO, PRACK, NOTIFY"},
+		}, nil)
+	case "PRACK":
+		// Provisional response acknowledgment (100rel). We don't use 100rel, but ack it anyway.
+		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE, INFO, PRACK, NOTIFY"},
+		}, nil)
+	case "NOTIFY":
+		// Some stacks may send NOTIFY in-dialog; ack it.
+		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE, INFO, PRACK, NOTIFY"},
+		}, nil)
 	case "UPDATE":
+		logger.Printf("sip recv: UPDATE call-id=%s se=%q min-se=%q require=%q from=%s", m.header("call-id"), m.header("session-expires"), m.header("min-se"), m.header("require"), addr.String())
 		// Session-timer refresh (RFC 3311). We don't change SDP; just acknowledge.
 		extra := map[string][]string{
-			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE, INFO, PRACK, NOTIFY"},
 		}
 		for k, v := range buildSessionTimerExtras(m) {
 			extra[k] = v
@@ -820,13 +928,15 @@ func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", extra, nil)
 	case "CANCEL":
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", nil, nil)
+		logger.Printf("sip recv: CANCEL call-id=%s from=%s", m.header("call-id"), addr.String())
 		endCall(logger, m.header("call-id"), st)
 	case "BYE":
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", nil, nil)
+		logger.Printf("sip recv: BYE call-id=%s from=%s", m.header("call-id"), addr.String())
 		endCall(logger, m.header("call-id"), st)
 	case "OPTIONS":
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
-			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE"},
+			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS, UPDATE, INFO, PRACK, NOTIFY"},
 		}, nil)
 	default:
 		sendSIPResponse(conn, addr, m, "", "", 501, "Not Implemented", nil, nil)
@@ -880,6 +990,8 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 		sendSIPResponse(conn, addr, req, "", "", 400, "Bad Request", nil, nil)
 		return
 	}
+	logger.Printf("sip recv: INVITE call-id=%s to=%s se=%q min-se=%q require=%q supported=%q from=%s",
+		req.header("call-id"), req.header("to"), req.header("session-expires"), req.header("min-se"), req.header("require"), req.header("supported"), addr.String())
 
 	st.mu.RLock()
 	agent, ok := st.agentByUser[extID]
@@ -970,7 +1082,11 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 
 	// Echo ONLY when this agent's Gemini socket URL is not set.
 	echo := strings.TrimSpace(agent.geminiSocketURL) == ""
-	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{}), echo: echo}
+	remoteRtp := parseSDPRtpAddr(req.body, addr)
+	if remoteRtp != nil {
+		logger.Printf("rtp peer from sdp: call-id=%s ext=%s peer=%s", callID, extID, remoteRtp.String())
+	}
+	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{}), echo: echo, remoteRtp: remoteRtp}
 	st.mu.Lock()
 	st.calls[callID] = cs
 	st.mu.Unlock()
@@ -1147,25 +1263,26 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 	// Downstream: WS streamAudio (wav/8k) -> PCM16 -> PCMU RTP (pt=0) -> caller
 	wsURL = strings.TrimSpace(wsURL)
 	if wsURL == "" {
-		runRTPDrainCall(logger, cs)
+		// Never go silent: callers often hang up after ~30s if they think there's "no media".
+		runRTPFallbackToneCall(logger, cs)
 		return
 	}
 	if !strings.HasPrefix(strings.ToLower(wsURL), "ws://") && !strings.HasPrefix(strings.ToLower(wsURL), "wss://") {
-		logger.Printf("ws stream: invalid url %q (expected ws:// or wss://); draining", wsURL)
-		runRTPDrainCall(logger, cs)
+		logger.Printf("ws stream: invalid url %q (expected ws:// or wss://); using fallback tone", wsURL)
+		runRTPFallbackToneCall(logger, cs)
 		return
 	}
 	u, err := url.Parse(wsURL)
 	if err != nil {
-		logger.Printf("ws stream: bad url %q: %v; draining", wsURL, err)
-		runRTPDrainCall(logger, cs)
+		logger.Printf("ws stream: bad url %q: %v; using fallback tone", wsURL, err)
+		runRTPFallbackToneCall(logger, cs)
 		return
 	}
 
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		logger.Printf("ws stream: dial failed url=%q: %v; draining", wsURL, err)
-		runRTPDrainCall(logger, cs)
+		logger.Printf("ws stream: dial failed url=%q: %v; using fallback tone", wsURL, err)
+		runRTPFallbackToneCall(logger, cs)
 		return
 	}
 	defer ws.Close()
@@ -1195,6 +1312,10 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 		lastAddr net.Addr
 		rx       uint64
 	)
+	// If we parsed a remote RTP address from SDP, use it immediately (don't wait to learn from inbound).
+	if cs.remoteRtp != nil {
+		lastAddr = cs.remoteRtp
+	}
 
 	// Playback worker (continuous 20ms pacing; sends silence when queue is empty).
 	go func() {
@@ -1527,49 +1648,47 @@ func wavToPCM16Mono(wav []byte) ([]int16, int, error) {
 }
 
 func downsampleTo8k(in []int16, inRate int) []int16 {
-	// Resampler for common rates from Gemini/bridge.
-	// The previous "drop samples" decimation (24k->8k take every 3rd) causes harsh aliasing
-	// that users often describe as "glitchy/robotic". Use linear interpolation instead.
-	switch inRate {
-	case 8000:
+	// Generic linear-resampler to 8k for speech.
+	// Handles any reasonable Gemini output rate (8k..48k) without aliasing.
+	if inRate <= 0 {
+		return nil
+	}
+	if inRate == 8000 {
 		out := make([]int16, len(in))
 		copy(out, in)
 		return out
-	case 16000, 24000:
-		// Linear interpolation to 8k.
-		// outLen ≈ inLen * 8000 / inRate
-		if len(in) < 2 {
-			return nil
-		}
-		outLen := (len(in) * 8000) / inRate
-		if outLen < 1 {
-			outLen = 1
-		}
-		out := make([]int16, outLen)
-		step := float64(inRate) / 8000.0
-		for i := 0; i < outLen; i++ {
-			pos := float64(i) * step
-			idx := int(pos)
-			if idx >= len(in)-1 {
-				out[i] = in[len(in)-1]
-				continue
-			}
-			frac := pos - float64(idx)
-			a := float64(in[idx])
-			b := float64(in[idx+1])
-			v := a + (b-a)*frac
-			if v > 32767 {
-				v = 32767
-			} else if v < -32768 {
-				v = -32768
-			}
-			out[i] = int16(v)
-		}
-		return out
-	default:
-		// unknown rate
+	}
+	if inRate < 8000 || inRate > 48000 {
 		return nil
 	}
+	if len(in) < 2 {
+		return nil
+	}
+	outLen := (len(in) * 8000) / inRate
+	if outLen < 1 {
+		outLen = 1
+	}
+	out := make([]int16, outLen)
+	step := float64(inRate) / 8000.0
+	for i := 0; i < outLen; i++ {
+		pos := float64(i) * step
+		idx := int(pos)
+		if idx >= len(in)-1 {
+			out[i] = in[len(in)-1]
+			continue
+		}
+		frac := pos - float64(idx)
+		a := float64(in[idx])
+		b := float64(in[idx+1])
+		v := a + (b-a)*frac
+		if v > 32767 {
+			v = 32767
+		} else if v < -32768 {
+			v = -32768
+		}
+		out[i] = int16(v)
+	}
+	return out
 }
 
 func sendPcm8kToRtpPcmu(cs *callSession, addr net.Addr, pcm8k []int16, ssrc uint32, seq uint16, ts uint32) (uint16, uint32) {
@@ -1662,6 +1781,125 @@ func genBeepPcm8k(freqHz int, ms int) []int16 {
 		}
 	}
 	return out
+}
+
+func runRTPFallbackToneCall(logger *log.Logger, cs *callSession) {
+	// Fallback when WS is unavailable or resets: keep RTP flowing so endpoints don't hang up
+	// after ~30s of perceived "no media".
+	//
+	// We send 20ms PCMU frames to the RTP peer we learn from inbound packets.
+	// (FreeSWITCH will always send us RTP; we learn the addr quickly.)
+	playSSRC := rand.Uint32()
+	playSeq := uint16(rand.Uint32())
+	playTS := uint32(rand.Uint32())
+
+	var (
+		mu       sync.Mutex
+		lastAddr net.Addr
+	)
+	// Use SDP-derived remote RTP address immediately if available.
+	if cs.remoteRtp != nil {
+		lastAddr = cs.remoteRtp
+	}
+
+	// Sender: 20ms pacing, beep bursts.
+	go func() {
+		t := time.NewTicker(20 * time.Millisecond)
+		defer t.Stop()
+
+		// 1 second cycle: ~180ms beep + remainder silence
+		beep := genBeepPcm8k(440, 180)
+		beepOff := 0
+		cycleSamples := 8000 // 1s @ 8k
+		cyclePos := 0
+
+		for {
+			select {
+			case <-cs.stopCh:
+				return
+			case <-t.C:
+				mu.Lock()
+				addr := lastAddr
+				mu.Unlock()
+				if addr == nil {
+					continue
+				}
+
+				const frameSamples = 160
+				pcm := make([]int16, frameSamples) // zeros => silence
+				if cyclePos < len(beep) {
+					need := frameSamples
+					avail := len(beep) - beepOff
+					if avail < need {
+						need = avail
+					}
+					if need > 0 {
+						copy(pcm[:need], beep[beepOff:beepOff+need])
+						beepOff += need
+					}
+				}
+
+				cyclePos += frameSamples
+				if cyclePos >= cycleSamples {
+					cyclePos = 0
+					beepOff = 0
+				}
+
+				payload := make([]byte, frameSamples)
+				for i := 0; i < frameSamples; i++ {
+					payload[i] = linearToMuLaw(pcm[i])
+				}
+
+				p := rtp.Packet{
+					Header: rtp.Header{
+						Version:        2,
+						Marker:         false,
+						PayloadType:    0, // PCMU
+						SequenceNumber: playSeq,
+						Timestamp:      playTS,
+						SSRC:           playSSRC,
+					},
+					Payload: payload,
+				}
+				raw, err := p.Marshal()
+				if err == nil {
+					_, _ = cs.rtp.WriteTo(raw, addr)
+				}
+				playSeq++
+				playTS += frameSamples
+			}
+		}
+	}()
+
+	// Receiver: learn RTP peer addr and keep consuming inbound.
+	buf := make([]byte, 2048)
+	var p rtp.Packet
+	var logged bool
+	for {
+		_ = cs.rtp.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+		n, addr, err := cs.rtp.ReadFrom(buf)
+		select {
+		case <-cs.stopCh:
+			return
+		default:
+		}
+		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				continue
+			}
+			return
+		}
+		if err := p.Unmarshal(buf[:n]); err != nil {
+			continue
+		}
+		mu.Lock()
+		lastAddr = addr
+		mu.Unlock()
+		if !logged {
+			logged = true
+			logger.Printf("ws stream: fallback tone active (ext=%s call-id=%s rtp-peer=%s)", cs.extID, cs.callID, addr.String())
+		}
+	}
 }
 
 func muLawToLinear(u byte) int16 {
