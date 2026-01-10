@@ -51,9 +51,10 @@
     <param name="NDLB-force-rport-cancel" value="true"/>
     <param name="NDLB-force-rport-ack" value="true"/>
     <param name="log-auth-failures" value="true"/>
+    <!-- Session timers / 100rel can trigger ~30-32s drops with some softphones (MicroSIP/3CX) if refresh/PRACK isn't handled as expected. -->
     <param name="session-timeout" value="1800"/>
-    <param name="session-refresh" value="120"/>
-    <param name="enable-100rel" value="true"/>
+    <param name="session-refresh" value="0"/>
+    <param name="enable-100rel" value="false"/>
     <param name="forward-unsolicited-mwi-notify" value="false"/>
     <param name="inbound-codec-negotiation" value="generous"/>
     <param name="nonce-ttl" value="60"/>
@@ -61,8 +62,9 @@
     <param name="auth-subscriptions" value="true"/>
     <param name="inbound-reg-force-matching-username" value="true"/>
     <param name="auth-all-packets" value="false"/>
-    <param name="ext-rtp-ip" value="$${external_rtp_ip}"/>
-    <param name="ext-sip-ip" value="$${external_sip_ip}"/>
+    <!-- Internal profile serves LAN clients; do not advertise public IPs here (can break media/dialog and cause timer-based hangups). -->
+    <param name="ext-rtp-ip" value="$${local_ip_v4}"/>
+    <param name="ext-sip-ip" value="$${local_ip_v4}"/>
     <param name="media-timeout" value="300"/>
     <param name="media-hold-timeout" value="1800"/>
     <!-- Allow LAN/WSL clients to REGISTER (the 'domains' ACL defaults deny and will block registrations) -->
