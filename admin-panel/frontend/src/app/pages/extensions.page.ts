@@ -232,7 +232,7 @@ export class ExtensionsPage {
   error = signal<string | null>(null);
   saving = signal(false);
   regs = signal<Record<string, { raw: string }>>({});
-  sipAi = signal<{ geminiSocketUrl: string; extensions: string[] }>({ geminiSocketUrl: '', extensions: [] });
+  sipAi = signal<any>(null);
   search = signal('');
   page = signal(1);
   pageSize = signal(10);
@@ -244,13 +244,18 @@ export class ExtensionsPage {
   options = computed(() => this.opts.options());
 
   sipAiEnabled(id: string) {
-    return this.sipAi().extensions.includes(id);
+    const cfg = this.sipAi();
+    const agents = cfg?.agents ?? [];
+    return agents.some((a: any) => a && a.enabled !== false && a.source === 'pbx' && String(a.extension) === id);
   }
 
   sipAiTooltip(id: string) {
-    if (!this.sipAiEnabled(id)) return 'SIP AI disabled';
-    const url = String(this.sipAi().geminiSocketUrl ?? '').trim();
-    return url ? `SIP AI enabled (${url})` : 'SIP AI enabled (no Gemini URL set)';
+    const cfg = this.sipAi();
+    const agents = cfg?.agents ?? [];
+    const a = agents.find((x: any) => x && x.enabled !== false && x.source === 'pbx' && String(x.extension) === id);
+    if (!a) return 'SIP AI disabled';
+    const url = String(a.geminiSocketUrl ?? '').trim();
+    return url ? `SIP AI enabled (${url})` : 'SIP AI enabled (echo mode)';
   }
 
   soundItems = computed((): SearchSelectItem[] => {
@@ -346,9 +351,9 @@ export class ExtensionsPage {
   }
 
   loadSipAi() {
-    this.http.get<{ geminiSocketUrl: string; extensions: string[] }>(`${API_BASE_URL}/pbx/sip-ai`).subscribe({
-      next: (res) => this.sipAi.set(res ?? { geminiSocketUrl: '', extensions: [] }),
-      error: () => this.sipAi.set({ geminiSocketUrl: '', extensions: [] }),
+    this.http.get<any>(`${API_BASE_URL}/pbx/sip-ai`).subscribe({
+      next: (res) => this.sipAi.set(res ?? null),
+      error: () => this.sipAi.set(null),
     });
   }
 

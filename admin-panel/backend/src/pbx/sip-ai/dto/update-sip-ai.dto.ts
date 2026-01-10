@@ -1,14 +1,31 @@
-import { IsArray, IsOptional, IsString, Matches } from 'class-validator';
+import { IsArray, IsObject, IsOptional } from 'class-validator';
 
 export class UpdateSipAiDto {
   @IsOptional()
-  @IsString()
-  geminiSocketUrl?: string;
+  @IsObject()
+  defaults?: {
+    sipServerAddr?: string;
+    sipDomain?: string;
+    sipContactHost?: string;
+    sdpIP?: string;
+    sipListenAddr?: string;
+    sipPass?: string;
+    registerExpires?: number;
+  };
 
   @IsOptional()
   @IsArray()
-  @Matches(/^\d+$/, { each: true })
-  extensions?: string[];
+  agents?: Array<{
+    id?: string;
+    source?: 'pbx' | 'external';
+    extension?: string;
+    sipUser?: string;
+    sipPass?: string;
+    sipServerAddr?: string;
+    sipDomain?: string;
+    geminiSocketUrl?: string;
+    enabled?: boolean;
+  }>;
 }
 
 

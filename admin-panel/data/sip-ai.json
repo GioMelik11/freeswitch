@@ -1,4 +1,20 @@
 {
-  "geminiSocketUrl": "wss://example",
-  "extensions": ["1001", "1003"]
+  "defaults": {
+    "sipServerAddr": "auto:5060",
+    "sipDomain": "auto",
+    "sipContactHost": "auto",
+    "sdpIP": "auto",
+    "sipListenAddr": "0.0.0.0:5090",
+    "sipPass": "1234",
+    "registerExpires": 300
+  },
+  "agents": [
+    {
+      "id": "pbx-1001",
+      "source": "pbx",
+      "extension": "1001",
+      "geminiSocketUrl": "",
+      "enabled": true
+    }
+  ]
 }

@@ -23,18 +23,6 @@ services:
     volumes:
       - ./admin-panel/data:/data:ro
     environment:
-      # In WSL host-network mode, FreeSWITCH binds to the WSL IP (not always 127.0.0.1).
-      # Use "auto" so sip-rtp-go discovers the correct local IP and talks to FreeSWITCH reliably.
-      - SIP_SERVER_ADDR=auto:5060
-      - SIP_DOMAIN=auto
-      - SIP_USER=1098
-      - SIP_PASS=1234
-      - SIP_LISTEN_ADDR=0.0.0.0:5090
-      - SIP_REGISTER_LOCAL_ADDR=0.0.0.0:5091
-      - SIP_CONTACT_HOST=auto
-      - RTP_LISTEN_ADDR=0.0.0.0:40000
-      - SDP_IP=auto
-      - REGISTER_EXPIRES=300
       - LOG_LEVEL=info
       - SIP_AI_CONFIG_PATH=/data/sip-ai.json
 

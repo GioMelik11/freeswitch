@@ -30,7 +30,6 @@ type cfg struct {
 	registerExpires int
 	logLevel        string
 	sipAiConfigPath string
-	sipUserFallback string
 }
 
 func getenv(k, def string) string {
@@ -54,33 +53,14 @@ func mustParseInt(k string, def int) int {
 }
 
 func loadCfg() cfg {
-	serverAddr := getenv("SIP_SERVER_ADDR", "auto:5060")
-	domain := getenv("SIP_DOMAIN", "auto")
-	contactHost := getenv("SIP_CONTACT_HOST", "auto")
-	sdpIP := getenv("SDP_IP", "auto")
-
-	autoIP := detectLocalIPv4()
-	if strings.HasPrefix(strings.ToLower(serverAddr), "auto:") {
-		serverAddr = autoIP + serverAddr[len("auto"):]
-	}
-	if strings.EqualFold(domain, "auto") {
-		domain = autoIP
-	}
-	if strings.EqualFold(contactHost, "auto") {
-		contactHost = autoIP
-	}
-	if strings.EqualFold(sdpIP, "auto") {
-		sdpIP = autoIP
-	}
-
 	return cfg{
-		sipServerAddr:   serverAddr,
-		sipDomain:       domain,
-		sipUserFallback: getenv("SIP_USER", "1098"),
+		// Legacy envs are removed from docker-compose; these are only used as last-resort defaults.
+		sipServerAddr:   getenv("SIP_SERVER_ADDR", "auto:5060"),
+		sipDomain:       getenv("SIP_DOMAIN", "auto"),
 		sipPass:         getenv("SIP_PASS", "1234"),
 		sipListenAddr:   getenv("SIP_LISTEN_ADDR", "0.0.0.0:5090"),
-		sipContactHost:  contactHost,
-		sdpIP:           sdpIP,
+		sipContactHost:  getenv("SIP_CONTACT_HOST", "auto"),
+		sdpIP:           getenv("SDP_IP", "auto"),
 		registerExpires: mustParseInt("REGISTER_EXPIRES", 300),
 		logLevel:        getenv("LOG_LEVEL", "info"),
 		sipAiConfigPath: getenv("SIP_AI_CONFIG_PATH", "/data/sip-ai.json"),
@@ -101,40 +81,48 @@ func detectLocalIPv4() string {
 	return "127.0.0.1"
 }
 
-type sipAiConfig struct {
+type sipAiDefaultsV2 struct {
+	SipServerAddr   string `json:"sipServerAddr"`
+	SipDomain       string `json:"sipDomain"`
+	SipContactHost  string `json:"sipContactHost"`
+	SDPIP           string `json:"sdpIP"`
+	SipListenAddr   string `json:"sipListenAddr"`
+	SipPass         string `json:"sipPass"`
+	RegisterExpires int    `json:"registerExpires"`
+}
+
+type sipAiAgentV2 struct {
+	ID             string `json:"id"`
+	Source         string `json:"source"` // "pbx" | "external"
+	Extension      string `json:"extension"`
+	SipUser        string `json:"sipUser"`
+	SipPass        string `json:"sipPass"`
+	SipServerAddr  string `json:"sipServerAddr"`
+	SipDomain      string `json:"sipDomain"`
+	GeminiSocketURL string `json:"geminiSocketUrl"`
+	Enabled        *bool  `json:"enabled"`
+}
+
+type sipAiConfigV2 struct {
+	Defaults sipAiDefaultsV2 `json:"defaults"`
+	Agents   []sipAiAgentV2  `json:"agents"`
+	// legacy
 	GeminiSocketURL string   `json:"geminiSocketUrl"`
 	Extensions      []string `json:"extensions"`
 }
 
-func loadSipAiConfig(path string) sipAiConfig {
+func loadSipAiConfig(path string) sipAiConfigV2 {
 	f, err := os.Open(path)
 	if err != nil {
-		return sipAiConfig{}
+		return sipAiConfigV2{}
 	}
 	defer f.Close()
 	dec := json.NewDecoder(io.LimitReader(f, 1<<20))
 	dec.DisallowUnknownFields()
-	var cfg sipAiConfig
+	var cfg sipAiConfigV2
 	if err := dec.Decode(&cfg); err != nil {
-		return sipAiConfig{}
+		return sipAiConfigV2{}
 	}
-	// normalize extensions
-	out := make([]string, 0, len(cfg.Extensions))
-	seen := map[string]bool{}
-	for _, x := range cfg.Extensions {
-		id := strings.TrimSpace(x)
-		if !isDigits(id) {
-			continue
-		}
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
-		out = append(out, id)
-	}
-	sortNumericStrings(out)
-	cfg.Extensions = out
-	cfg.GeminiSocketURL = strings.TrimSpace(cfg.GeminiSocketURL)
 	return cfg
 }
 
@@ -156,6 +144,24 @@ func sortNumericStrings(a []string) {
 		nj, _ := strconv.Atoi(a[j])
 		return ni < nj
 	})
+}
+
+func resolveAutoHost(v string, autoIP string) string {
+	if strings.EqualFold(strings.TrimSpace(v), "auto") {
+		return autoIP
+	}
+	return strings.TrimSpace(v)
+}
+
+func resolveAutoAddr(v string, autoIP string) string {
+	s := strings.TrimSpace(v)
+	if strings.HasPrefix(strings.ToLower(s), "auto:") {
+		return autoIP + s[len("auto"):]
+	}
+	if strings.EqualFold(s, "auto") {
+		return autoIP
+	}
+	return s
 }
 
 type sipMsg struct {
@@ -353,13 +359,42 @@ type runtimeState struct {
 	// which extensions are currently enabled for SIP AI
 	enabledExt map[string]bool
 	// if set, calls are considered "AI mode" (Gemini integration later)
+	// NOTE: now per-agent; kept for old behavior but not used
 	geminiSocketURL string
+	sipContactHost  string
+	sdpIP           string
 
 	// registration workers by extension id
 	workers map[string]*regWorker
 
 	// active calls by Call-ID
 	calls map[string]*callSession
+
+	// per SIP user routing
+	agentByUser map[string]agentRuntime
+}
+
+type agentRuntime struct {
+	user           string
+	enabled        bool
+	geminiSocketURL string
+	source         string
+	// registration target
+	sipServerAddr   string
+	sipDomain       string
+	sipPass         string
+	registerExpires int
+	// shared defaults (global)
+}
+
+type regTarget struct {
+	username        string
+	password        string
+	serverAddr      string
+	domain          string
+	contactHost     string
+	sipListenAddr   string
+	registerExpires int
 }
 
 type callSession struct {
@@ -388,6 +423,7 @@ func main() {
 		enabledExt: map[string]bool{},
 		workers:    map[string]*regWorker{},
 		calls:      map[string]*callSession{},
+		agentByUser: map[string]agentRuntime{},
 	}
 
 	// Watch SIP AI config file and keep registrations in sync.
@@ -404,25 +440,25 @@ func main() {
 	}
 }
 
-func doRegister(logger *log.Logger, conn net.PacketConn, c cfg, username string) error {
-	serverAddr, err := net.ResolveUDPAddr("udp", c.sipServerAddr)
+func doRegister(logger *log.Logger, conn net.PacketConn, target regTarget) error {
+	serverAddr, err := net.ResolveUDPAddr("udp", target.serverAddr)
 	if err != nil {
 		return err
 	}
 
-	_, sipListenPort, err := net.SplitHostPort(c.sipListenAddr)
+	_, sipListenPort, err := net.SplitHostPort(target.sipListenAddr)
 	if err != nil {
-		return fmt.Errorf("bad SIP_LISTEN_ADDR %q: %w", c.sipListenAddr, err)
+		return fmt.Errorf("bad sipListenAddr %q: %w", target.sipListenAddr, err)
 	}
-	contactURI := fmt.Sprintf("sip:%s@%s;transport=udp", username, net.JoinHostPort(c.sipContactHost, sipListenPort))
-	reqURI := fmt.Sprintf("sip:%s", c.sipDomain)
+	contactURI := fmt.Sprintf("sip:%s@%s;transport=udp", target.username, net.JoinHostPort(target.contactHost, sipListenPort))
+	reqURI := fmt.Sprintf("sip:%s", target.domain)
 
 	fromTag := randHex(10)
-	callID := fmt.Sprintf("%s@%s", randHex(16), c.sipContactHost)
+	callID := fmt.Sprintf("%s@%s", randHex(16), target.contactHost)
 
 	send := func(cseq int, auth string) error {
 		la, _ := conn.LocalAddr().(*net.UDPAddr)
-		regHost := c.sipContactHost
+		regHost := target.contactHost
 		regPort := "0"
 		if la != nil && la.Port > 0 {
 			// Keep host stable (Contact host) and only use the local port for Via.
@@ -434,12 +470,12 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg, username string)
 		b.WriteString(fmt.Sprintf("REGISTER %s SIP/2.0\r\n", reqURI))
 		b.WriteString(fmt.Sprintf("Via: SIP/2.0/UDP %s:%s;branch=%s;rport\r\n", regHost, regPort, branch))
 		b.WriteString("Max-Forwards: 70\r\n")
-		b.WriteString(fmt.Sprintf("From: <sip:%s@%s>;tag=%s\r\n", username, c.sipDomain, fromTag))
-		b.WriteString(fmt.Sprintf("To: <sip:%s@%s>\r\n", username, c.sipDomain))
+		b.WriteString(fmt.Sprintf("From: <sip:%s@%s>;tag=%s\r\n", target.username, target.domain, fromTag))
+		b.WriteString(fmt.Sprintf("To: <sip:%s@%s>\r\n", target.username, target.domain))
 		b.WriteString(fmt.Sprintf("Call-ID: %s\r\n", callID))
 		b.WriteString(fmt.Sprintf("CSeq: %d REGISTER\r\n", cseq))
 		b.WriteString(fmt.Sprintf("Contact: <%s>\r\n", contactURI))
-		b.WriteString(fmt.Sprintf("Expires: %d\r\n", c.registerExpires))
+		b.WriteString(fmt.Sprintf("Expires: %d\r\n", target.registerExpires))
 		b.WriteString("User-Agent: sip-rtp-go\r\n")
 		if auth != "" {
 			b.WriteString(fmt.Sprintf("Authorization: %s\r\n", auth))
@@ -476,7 +512,7 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg, username string)
 	if err != nil {
 		return err
 	}
-	auth := buildAuthorization("REGISTER", reqURI, username, c.sipPass, ch, 1)
+	auth := buildAuthorization("REGISTER", reqURI, target.username, target.password, ch, 1)
 
 	// 2) Send authenticated REGISTER
 	if err := send(2, auth); err != nil {
@@ -489,7 +525,7 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg, username string)
 	if resp2.status != 200 {
 		return fmt.Errorf("register failed: %d %s", resp2.status, resp2.reason)
 	}
-	logger.Printf("registered as %s (expires=%ds)", username, c.registerExpires)
+	logger.Printf("registered as %s (expires=%ds)", target.username, target.registerExpires)
 	return nil
 }
 
@@ -521,36 +557,132 @@ func waitSIPResponse(conn net.PacketConn, timeout time.Duration, forMethod strin
 }
 
 func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
-	apply := func(exts []string, geminiURL string) {
-		next := map[string]bool{}
-		for _, id := range exts {
-			next[id] = true
+	apply := func(file sipAiConfigV2) {
+		autoIP := detectLocalIPv4()
+
+		// Defaults from config (fall back to legacy env defaults from cfg)
+		def := file.Defaults
+		serverAddr := resolveAutoAddr(firstNonEmpty(def.SipServerAddr, c.sipServerAddr), autoIP)
+		domain := resolveAutoHost(firstNonEmpty(def.SipDomain, c.sipDomain), autoIP)
+		contactHost := resolveAutoHost(firstNonEmpty(def.SipContactHost, c.sipContactHost), autoIP)
+		sdpIP := resolveAutoHost(firstNonEmpty(def.SDPIP, c.sdpIP), autoIP)
+		registerExpires := def.RegisterExpires
+		if registerExpires < 0 {
+			registerExpires = c.registerExpires
+		}
+		if registerExpires == 0 {
+			// Treat 0 as "no limit" (very large Expires). Still refresh periodically.
+			registerExpires = 31536000
+		}
+		if registerExpires < 0 {
+			registerExpires = 300
+		}
+		defaultPass := def.SipPass
+		if strings.TrimSpace(defaultPass) == "" {
+			defaultPass = c.sipPass
+		}
+		if strings.TrimSpace(defaultPass) == "" {
+			defaultPass = "1234"
+		}
+
+		// Build agents list (v2). If none configured -> do nothing (no fallback).
+		agents := make([]sipAiAgentV2, 0, len(file.Agents))
+		agents = append(agents, file.Agents...)
+
+		agentByUser := map[string]agentRuntime{}
+		for _, a := range agents {
+			enabled := true
+			if a.Enabled != nil && *a.Enabled == false {
+				enabled = false
+			}
+			if !enabled {
+				continue
+			}
+
+			src := strings.ToLower(strings.TrimSpace(a.Source))
+			if src == "external" {
+				user := strings.TrimSpace(a.SipUser)
+				pass := strings.TrimSpace(a.SipPass)
+				srv := strings.TrimSpace(a.SipServerAddr)
+				dom := strings.TrimSpace(a.SipDomain)
+				if !isDigits(user) && user == "" {
+					continue
+				}
+				if user == "" || pass == "" || srv == "" || dom == "" {
+					continue
+				}
+				agentByUser[user] = agentRuntime{
+					user:            user,
+					enabled:         true,
+					source:          "external",
+					geminiSocketURL: strings.TrimSpace(a.GeminiSocketURL),
+					sipServerAddr:   resolveAutoAddr(srv, autoIP),
+					sipDomain:       resolveAutoHost(dom, autoIP),
+					sipPass:         pass,
+					registerExpires: registerExpires,
+				}
+				continue
+			}
+
+			// pbx
+			ext := strings.TrimSpace(a.Extension)
+			if !isDigits(ext) {
+				continue
+			}
+			pass := strings.TrimSpace(a.SipPass)
+			if pass == "" {
+				pass = defaultPass
+			}
+			agentByUser[ext] = agentRuntime{
+				user:            ext,
+				enabled:         true,
+				source:          "pbx",
+				geminiSocketURL: strings.TrimSpace(a.GeminiSocketURL),
+				sipServerAddr:   serverAddr,
+				sipDomain:       domain,
+				sipPass:         pass,
+				registerExpires: registerExpires,
+			}
 		}
 
 		st.mu.Lock()
-		defer st.mu.Unlock()
-
-		// stop removed workers
-		for id, w := range st.workers {
-			if next[id] {
-				continue
-			}
+		// stop all existing workers (simpler and safe)
+		for _, w := range st.workers {
 			close(w.stopCh)
-			delete(st.workers, id)
 		}
-		// start new workers
-		for id := range next {
-			if _, ok := st.workers[id]; ok {
-				continue
+		st.workers = map[string]*regWorker{}
+		st.agentByUser = agentByUser
+		st.sipContactHost = contactHost
+		st.sdpIP = sdpIP
+		st.mu.Unlock()
+
+		if len(agentByUser) == 0 {
+			logger.Printf("sip-ai: no agents configured; not registering anything")
+			return
+		}
+
+		// start workers
+		for user, a := range agentByUser {
+			w := &regWorker{id: user, stopCh: make(chan struct{}), doneCh: make(chan struct{})}
+			st.mu.Lock()
+			st.workers[user] = w
+			st.mu.Unlock()
+
+			target := regTarget{
+				username:        a.user,
+				password:        a.sipPass,
+				serverAddr:      a.sipServerAddr,
+				domain:          a.sipDomain,
+				contactHost:     contactHost,
+				sipListenAddr:   c.sipListenAddr,
+				registerExpires: a.registerExpires,
 			}
-			w := &regWorker{id: id, stopCh: make(chan struct{}), doneCh: make(chan struct{})}
-			st.workers[id] = w
-			go func(id string, w *regWorker) {
+
+			go func(user string, w *regWorker, t regTarget) {
 				defer close(w.doneCh)
-				// Force IPv4 for REGISTER transactions (FreeSWITCH internal profile is IPv4 here).
 				regConn, err := net.ListenPacket("udp4", "0.0.0.0:0")
 				if err != nil {
-					logger.Printf("register[%s] listen error: %v", id, err)
+					logger.Printf("register[%s] listen error: %v", user, err)
 					return
 				}
 				defer regConn.Close()
@@ -562,33 +694,25 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 					default:
 					}
 
-					if err := doRegister(logger, regConn, c, id); err != nil {
-						logger.Printf("register[%s] error: %v", id, err)
+					if err := doRegister(logger, regConn, t); err != nil {
+						logger.Printf("register[%s] error: %v", user, err)
 					}
-					// refresh
-					sleep := time.Duration(max(10, c.registerExpires/2)) * time.Second
+					sleep := time.Duration(max(10, t.registerExpires/2)) * time.Second
 					select {
 					case <-w.stopCh:
 						return
 					case <-time.After(sleep):
 					}
 				}
-			}(id, w)
+			}(user, w, target)
 		}
-
-		st.enabledExt = next
-		st.geminiSocketURL = strings.TrimSpace(geminiURL)
 	}
 
 	// initial apply
 	for {
 		file := loadSipAiConfig(c.sipAiConfigPath)
-		exts := file.Extensions
-		if len(exts) == 0 && isDigits(c.sipUserFallback) {
-			exts = []string{c.sipUserFallback}
-		}
-		apply(exts, file.GeminiSocketURL)
-		logger.Printf("sip-ai config loaded: extensions=%v gemini=%v", exts, file.GeminiSocketURL != "")
+		apply(file)
+		logger.Printf("sip-ai config loaded")
 		break
 	}
 
@@ -603,13 +727,16 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 		}
 		last = cur
 		file := loadSipAiConfig(c.sipAiConfigPath)
-		exts := file.Extensions
-		if len(exts) == 0 && isDigits(c.sipUserFallback) {
-			exts = []string{c.sipUserFallback}
-		}
-		apply(exts, file.GeminiSocketURL)
-		logger.Printf("sip-ai config updated: extensions=%v", exts)
+		apply(file)
+		logger.Printf("sip-ai config updated")
 	}
+}
+
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return strings.TrimSpace(a)
+	}
+	return strings.TrimSpace(b)
 }
 
 func max(a, b int) int {
@@ -697,12 +824,13 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	}
 
 	st.mu.RLock()
-	enabled := st.enabledExt[extID]
-	geminiURL := strings.TrimSpace(st.geminiSocketURL)
+	agent, ok := st.agentByUser[extID]
+	contactHost := st.sipContactHost
+	sdpIP := st.sdpIP
 	_, inCall := st.calls[req.header("call-id")]
 	st.mu.RUnlock()
 
-	if !enabled {
+	if !ok || !agent.enabled {
 		sendSIPResponse(conn, addr, req, "", "", 404, "Not Found", nil, nil)
 		return
 	}
@@ -733,11 +861,17 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	sendSIPResponse(conn, addr, req, toWithTag, "", 100, "Trying", nil, nil)
 	sendSIPResponse(conn, addr, req, toWithTag, "", 180, "Ringing", nil, nil)
 
-	sdp := buildSDP(c.sdpIP, rtpPort)
+	if strings.TrimSpace(sdpIP) == "" {
+		sdpIP = detectLocalIPv4()
+	}
+	if strings.TrimSpace(contactHost) == "" {
+		contactHost = detectLocalIPv4()
+	}
+	sdp := buildSDP(sdpIP, rtpPort)
 	_, sipListenPort, _ := net.SplitHostPort(c.sipListenAddr)
 	contact := ""
 	if sipListenPort != "" {
-		contact = fmt.Sprintf("<sip:%s@%s:%s;transport=udp>", extID, c.sipContactHost, sipListenPort)
+		contact = fmt.Sprintf("<sip:%s@%s:%s;transport=udp>", extID, contactHost, sipListenPort)
 	}
 	extra := map[string][]string{
 		"Content-Type": {"application/sdp"},
@@ -746,8 +880,8 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 	}
 	sendSIPResponse(conn, addr, req, toWithTag, contact, 200, "OK", extra, []byte(sdp))
 
-	// Echo ONLY when Gemini socket URL is not set.
-	echo := geminiURL == ""
+	// Echo ONLY when this agent's Gemini socket URL is not set.
+	echo := strings.TrimSpace(agent.geminiSocketURL) == ""
 	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{}), echo: echo}
 	st.mu.Lock()
 	st.calls[callID] = cs
@@ -755,10 +889,10 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 
 	if echo {
 		go runRTPEchoCall(logger, cs)
-		logger.Printf("call answered (ext=%s mode=echo rtp=%s:%d)", extID, c.sdpIP, rtpPort)
+		logger.Printf("call answered (ext=%s mode=echo rtp=%s:%d)", extID, sdpIP, rtpPort)
 	} else {
 		go runRTPDrainCall(logger, cs)
-		logger.Printf("call answered (ext=%s mode=ai-pending rtp=%s:%d)", extID, c.sdpIP, rtpPort)
+		logger.Printf("call answered (ext=%s mode=ai-pending rtp=%s:%d)", extID, sdpIP, rtpPort)
 	}
 }
 
