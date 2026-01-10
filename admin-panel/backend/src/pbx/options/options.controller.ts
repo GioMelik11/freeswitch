@@ -53,13 +53,6 @@ export class OptionsController {
     const domains = ['default'];
 
     const m = this.meta.get().meta;
-    const aiServices = (m.aiServices ?? [])
-      .filter((s: any) => s && s.enabled !== false && s.id && s.socketUrl)
-      .map((s: any) => ({
-        id: String(s.id),
-        name: String(s.name ?? s.id),
-        socketUrl: String(s.socketUrl),
-      }));
 
     const trunks = this.trunks.list().map((t) => ({
       name: t.name,
@@ -76,8 +69,6 @@ export class OptionsController {
       mohClasses,
       strategies,
       domains,
-      aiServices,
-      defaultAiServiceId: m.defaultAiServiceId ?? null,
       defaultTrunkName: m.defaultTrunkName ?? null,
     };
   }

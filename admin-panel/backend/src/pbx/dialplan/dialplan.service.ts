@@ -4,21 +4,7 @@ import { PbxDestination, PbxMetaV1 } from '../meta/pbx-meta.types';
 
 @Injectable()
 export class DialplanService {
-  constructor(private readonly files: FilesService) {}
-
-  private buildAiCtx(meta: PbxMetaV1): AiCtx {
-    const services = new Map<string, string>();
-    for (const s of meta.aiServices ?? []) {
-      if (s?.enabled === false) continue;
-      if (!s?.id || !s?.socketUrl) continue;
-      services.set(String(s.id), String(s.socketUrl));
-    }
-    const defaultUrl =
-      (meta.defaultAiServiceId
-        ? (services.get(String(meta.defaultAiServiceId)) ?? '')
-        : '') || (services.size ? [...services.values()][0] : '');
-    return { services, defaultUrl };
-  }
+  constructor(private readonly files: FilesService) { }
 
   ensurePublicIncludesDir() {
     const rel = 'dialplan/public.xml';
@@ -87,21 +73,19 @@ export class DialplanService {
     const rel = 'dialplan/public/10_adminpanel_trunk_inbound.xml';
     const extXml: string[] = [];
 
-    const ai = this.buildAiCtx(meta);
-
     for (const [trunkName, t] of Object.entries(meta.trunks ?? {})) {
       if (!t?.inboundDestination) continue;
       const name = esc(trunkName);
       const dest = t.inboundDestination;
       extXml.push(
         `  <extension name="adminpanel_inbound_${name}">\n` +
-          `    <!-- Included into public context via dialplan/public.xml -->\n` +
-          `    <condition field="destination_number" expression="^(.*)$">\n` +
-          `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
-          `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-          renderDestination(dest, ai).replace(/^ {8}/gm, '      ') +
-          `    </condition>\n` +
-          `  </extension>`,
+        `    <!-- Included into public context via dialplan/public.xml -->\n` +
+        `    <condition field="destination_number" expression="^(.*)$">\n` +
+        `      <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+        `      <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+        renderDestination(dest).replace(/^ {8}/gm, '      ') +
+        `    </condition>\n` +
+        `  </extension>`,
       );
     }
 
@@ -198,12 +182,12 @@ export class DialplanService {
 
       extXml.push(
         `    <extension name="adminpanel_queue_${qname}">\n` +
-          `      <condition field="destination_number" expression="^${dn}$">\n` +
-          `        <action application="answer"/>\n` +
-          `        <action application="callcenter" data="${qname}"/>\n` +
-          `        <action application="lua" data="adminpanel_queue_post.lua ${postLuaArgs}"/>\n` +
-          `      </condition>\n` +
-          `    </extension>`,
+        `      <condition field="destination_number" expression="^${dn}$">\n` +
+        `        <action application="answer"/>\n` +
+        `        <action application="callcenter" data="${qname}"/>\n` +
+        `        <action application="lua" data="adminpanel_queue_post.lua ${postLuaArgs}"/>\n` +
+        `      </condition>\n` +
+        `    </extension>`,
       );
     }
 
@@ -282,46 +266,15 @@ export class DialplanService {
     exts: Array<{
       id: string;
       forwardMobile?: string;
-      aiEnabled?: boolean;
-      aiServiceId?: string;
       outboundTrunk?: string;
     }>,
-    ai?: { services: Map<string, string>; defaultUrl?: string },
   ) {
     const rel = 'dialplan/default/10_adminpanel_extensions.xml';
     const extXml: string[] = [];
 
-    const aiScript =
-      '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
-    const fsAudioVar = '${audio_stream_url}';
-
     for (const e of exts) {
       const id = String(e.id ?? '').trim();
       if (!/^\d+$/.test(id)) continue;
-
-      if (e.aiEnabled) {
-        const sid = String((e as any).aiServiceId ?? '').trim();
-        // IMPORTANT: every AI-enabled extension must always have an explicit service URL.
-        // - If a specific aiServiceId is set but missing/disabled, fall back to defaultUrl.
-        // - defaultUrl is computed by callers from enabled services, so it should be non-empty.
-        const url =
-          (sid ? (ai?.services?.get(sid) ?? '') : '') || (ai?.defaultUrl ?? '');
-        const setUrlLine = `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n`;
-        extXml.push(
-          `    <extension name="adminpanel_ai_${esc(id)}">\n` +
-            `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
-            `        <action application="answer"/>\n` +
-            `        <action application="sleep" data="500"/>\n` +
-            `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
-            setUrlLine +
-            `        <action application="lua" data="${aiScript} ${fsAudioVar} mono 16k"/>\n` +
-            `        <action application="sleep" data="3600000"/>\n` +
-            `        <action application="hangup"/>\n` +
-            `      </condition>\n` +
-            `    </extension>`,
-        );
-        continue;
-      }
 
       const mobile = String(e.forwardMobile ?? '').trim();
       if (mobile) {
@@ -331,15 +284,15 @@ export class DialplanService {
           : '${adminpanel_outbound_trunk:-sip_trunk_provider}';
         extXml.push(
           `    <extension name="adminpanel_forward_${esc(id)}">\n` +
-            `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
-            `        <action application="export" data="dialed_extension=${esc(id)}"/>\n` +
-            `        <action application="set" data="ringback=${'$'}{us-ring}"/>\n` +
-            `        <action application="set" data="call_timeout=30"/>\n` +
-            `        <action application="set" data="continue_on_fail=true"/>\n` +
-            `        <action application="set" data="hangup_after_bridge=true"/>\n` +
-            `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/${trunkVar}/${esc(mobile)}"/>\n` +
-            `      </condition>\n` +
-            `    </extension>`,
+          `      <condition field="destination_number" expression="^${esc(id)}$">\n` +
+          `        <action application="export" data="dialed_extension=${esc(id)}"/>\n` +
+          `        <action application="set" data="ringback=${'$'}{us-ring}"/>\n` +
+          `        <action application="set" data="call_timeout=30"/>\n` +
+          `        <action application="set" data="continue_on_fail=true"/>\n` +
+          `        <action application="set" data="hangup_after_bridge=true"/>\n` +
+          `        <action application="bridge" data="user/${'$'}{dialed_extension}@${'$'}{domain_name}|sofia/gateway/${trunkVar}/${esc(mobile)}"/>\n` +
+          `      </condition>\n` +
+          `    </extension>`,
         );
       }
     }
@@ -386,25 +339,25 @@ export class DialplanService {
 
         conditions.push(
           `      <condition field="destination_number" expression="${esc(expr)}">\n` +
-            `        <action application="set" data="adminpanel_trunk_outgoing_sound=${esc(sound)}"/>\n` +
-            `        <action application="set" data="adminpanel_trunk_outgoing_ivr=${esc(ivr)}"/>\n` +
-            `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
-            `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
-            `        <action application="set" data="ringback=${'$'}{adminpanel_outgoing_sound:-${'$'}{adminpanel_trunk_outgoing_sound:-${'$'}{us-ring}}}"/>\n` +
-            `        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>\n` +
-            `        <action application="set" data="call_timeout=60"/>\n` +
-            `        <action application="set" data="hangup_after_bridge=true"/>\n` +
-            `        <action application="set" data="continue_on_fail=true"/>\n` +
-            `        <action application="bridge" data="sofia/gateway/${trunkEsc}/${dialed}"/>\n` +
-            `      </condition>`,
+          `        <action application="set" data="adminpanel_trunk_outgoing_sound=${esc(sound)}"/>\n` +
+          `        <action application="set" data="adminpanel_trunk_outgoing_ivr=${esc(ivr)}"/>\n` +
+          `        <action application="set" data="effective_caller_id_number=${'$'}{caller_id_number}"/>\n` +
+          `        <action application="set" data="effective_caller_id_name=${'$'}{caller_id_name}"/>\n` +
+          `        <action application="set" data="ringback=${'$'}{adminpanel_outgoing_sound:-${'$'}{adminpanel_trunk_outgoing_sound:-${'$'}{us-ring}}}"/>\n` +
+          `        <action application="lua" data="adminpanel_outgoing_ivr.lua"/>\n` +
+          `        <action application="set" data="call_timeout=60"/>\n` +
+          `        <action application="set" data="hangup_after_bridge=true"/>\n` +
+          `        <action application="set" data="continue_on_fail=true"/>\n` +
+          `        <action application="bridge" data="sofia/gateway/${trunkEsc}/${dialed}"/>\n` +
+          `      </condition>`,
         );
       }
 
       if (conditions.length) {
         extNodes.push(
           `    <extension name="adminpanel_outbound_${trunkEsc}">\n` +
-            `${conditions.join('\n')}\n` +
-            `    </extension>`,
+          `${conditions.join('\n')}\n` +
+          `    </extension>`,
         );
       }
     }
@@ -419,9 +372,7 @@ export class DialplanService {
   }
 }
 
-type AiCtx = { services: Map<string, string>; defaultUrl: string };
-
-function renderDestination(dest: PbxDestination, ai?: AiCtx) {
+function renderDestination(dest: PbxDestination) {
   assertDestination(dest);
   switch (dest.type) {
     case 'terminate':
@@ -439,20 +390,6 @@ function renderDestination(dest: PbxDestination, ai?: AiCtx) {
         `        <action application="sleep" data="1000"/>\n` +
         `        <action application="ivr" data="${esc(dest.target)}"/>\n`
       );
-    case 'ai': {
-      const url = resolveAiUrl(dest.target, ai);
-      const aiScript =
-        '/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua';
-      return (
-        `        <action application="answer"/>\n` +
-        `        <action application="sleep" data="500"/>\n` +
-        `        <action application="set" data="STREAM_SUPPRESS_LOG=true"/>\n` +
-        `        <action application="set" data="audio_stream_url=${esc(url)}"/>\n` +
-        `        <action application="lua" data="${aiScript} ${'$'}{audio_stream_url} mono 16k"/>\n` +
-        `        <action application="sleep" data="3600000"/>\n` +
-        `        <action application="hangup"/>\n`
-      );
-    }
     case 'timeCondition':
       return `        <action application="transfer" data="${esc(dest.target)} XML default"/>\n`;
   }
@@ -484,25 +421,7 @@ function assertDestination(dest: PbxDestination) {
       }
       return;
     }
-    case 'ai': {
-      const target = String((dest as any).target ?? '').trim();
-      if (!target) return; // ok: use default AI service
-      if (/^wss?:\/\//i.test(target)) return; // ok: direct URL
-      if (/^[a-zA-Z0-9_-]+$/.test(target)) return; // ok: service id
-      throw new BadRequestException(
-        `Invalid ai target "${target}". Expected AI service id (alnum/_/-) or ws(s):// URL.`,
-      );
-    }
   }
-}
-
-function resolveAiUrl(target: string | undefined, ai?: AiCtx) {
-  const t = String(target ?? '').trim();
-  if (/^wss?:\/\//i.test(t)) return t;
-  if (t && ai?.services?.has(t)) return String(ai.services.get(t) ?? '');
-  if (ai?.defaultUrl) return ai.defaultUrl;
-  // fall back to empty string; FreeSWITCH will fail fast and logs will show the issue
-  return '';
 }
 
 function esc(s: string) {

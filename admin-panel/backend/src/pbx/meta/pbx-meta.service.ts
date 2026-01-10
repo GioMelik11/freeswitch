@@ -26,8 +26,6 @@ export class PbxMetaService {
       version: 1,
       queues: {},
       trunks: {},
-      aiServices: [],
-      defaultAiServiceId: undefined,
       defaultTrunkName: undefined,
     };
   }
@@ -49,7 +47,6 @@ export class PbxMetaService {
         : { ...this.defaultMeta(), ...(parsed ?? {}) };
     meta.queues = meta.queues ?? {};
     meta.trunks = meta.trunks ?? {};
-    meta.aiServices = meta.aiServices ?? [];
     meta.defaultTrunkName = meta.defaultTrunkName ?? undefined;
     return { meta, etag: this.sha256(content) };
   }

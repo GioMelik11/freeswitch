@@ -8,7 +8,6 @@ export type OptionQueue = { name: string };
 export type OptionIvr = { name: string };
 export type OptionTimeCondition = { name: string; extensionNumber: string };
 export type SoundItem = { category: 'music' | 'ivr' | 'other'; file: string; relPath: string; fsPath: string; playPath: string };
-export type OptionAiService = { id: string; name: string; socketUrl: string };
 
 export type PbxOptions = {
   extensions: OptionExtension[];
@@ -20,8 +19,6 @@ export type PbxOptions = {
   mohClasses: string[];
   strategies: string[];
   domains: string[];
-  aiServices: OptionAiService[];
-  defaultAiServiceId?: string | null;
   defaultTrunkName?: string | null;
 };
 

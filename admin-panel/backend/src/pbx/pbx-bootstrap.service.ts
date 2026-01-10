@@ -29,17 +29,7 @@ export class PbxBootstrapService implements OnModuleInit {
       this.dialplan.writeQueues(meta);
 
       const list = this.extensions.list();
-      const services = new Map<string, string>();
-      for (const s of meta.aiServices ?? []) {
-        if (s?.enabled === false) continue;
-        if (!s?.id || !s?.socketUrl) continue;
-        services.set(String(s.id), String(s.socketUrl));
-      }
-      const defaultUrl =
-        (meta.defaultAiServiceId
-          ? (services.get(String(meta.defaultAiServiceId)) ?? '')
-          : '') || (services.size ? [...services.values()][0] : '');
-      this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
+      this.dialplan.writeExtensionsSpecial(list);
 
       await this.reloadFsBestEffort();
     } catch {

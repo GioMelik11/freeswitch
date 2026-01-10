@@ -17,8 +17,6 @@ import { StatusController } from './status/status.controller';
 import { EslService } from '../freeswitch/esl/esl.service';
 import { PbxMetaModule } from './meta/pbx-meta.module';
 import { DialplanModule } from './dialplan/dialplan.module';
-import { AiController } from './ai/ai.controller';
-import { AiService } from './ai/ai.service';
 import { FreeswitchController } from './freeswitch/freeswitch.controller';
 import { ConsoleController } from './console/console.controller';
 import { ConsoleService } from './console/console.service';
@@ -41,7 +39,6 @@ import { SipAiService } from './sip-ai/sip-ai.service';
     SoundsController,
     OptionsController,
     StatusController,
-    AiController,
     SipAiController,
     FreeswitchController,
     ConsoleController,
@@ -56,7 +53,6 @@ import { SipAiService } from './sip-ai/sip-ai.service';
     TimeConditionsService,
     SoundsService,
     EslService,
-    AiService,
     SipAiService,
     ConsoleService,
     NatService,

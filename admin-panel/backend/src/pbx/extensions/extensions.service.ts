@@ -3,7 +3,6 @@ import { FilesService } from '../../files/files.service';
 import { asArray, xmlParser } from '../xml';
 import { Extension } from './extensions.types';
 import { DialplanService } from '../dialplan/dialplan.service';
-import { PbxMetaService } from '../meta/pbx-meta.service';
 import { EslService } from '../../freeswitch/esl/esl.service';
 
 const EXT_DIR = 'directory/default';
@@ -13,7 +12,6 @@ export class ExtensionsService {
   constructor(
     private readonly files: FilesService,
     private readonly dialplan: DialplanService,
-    private readonly meta: PbxMetaService,
     private readonly esl: EslService,
   ) {}
 
@@ -75,13 +73,6 @@ export class ExtensionsService {
       forwardMobile: getVar('adminpanel_forward_mobile')
         ? String(getVar('adminpanel_forward_mobile'))
         : undefined,
-      aiEnabled:
-        String(getVar('adminpanel_ai_enabled') ?? 'false') === 'true'
-          ? true
-          : undefined,
-      aiServiceId: getVar('adminpanel_ai_service_id')
-        ? String(getVar('adminpanel_ai_service_id'))
-        : undefined,
     };
   }
 
@@ -96,26 +87,12 @@ export class ExtensionsService {
     outgoingIvr?: string;
     outboundTrunk?: string;
     forwardMobile?: string;
-    aiEnabled?: boolean;
-    aiServiceId?: string;
     etag?: string;
   }) {
     const id = input.id;
     if (!/^\d+$/.test(id))
       throw new BadRequestException('Invalid extension id');
     const filePath = `${EXT_DIR}/${id}.xml`;
-
-    if (input.aiEnabled) {
-      const m = this.meta.get().meta;
-      const hasService = (m.aiServices ?? []).some(
-        (s: any) => s && s.enabled !== false && s.socketUrl,
-      );
-      if (!hasService) {
-        throw new BadRequestException(
-          'No AI services configured. Add at least one AI service first.',
-        );
-      }
-    }
 
     const xml = this.render({
       id,
@@ -128,8 +105,6 @@ export class ExtensionsService {
       outgoingIvr: input.outgoingIvr,
       outboundTrunk: input.outboundTrunk,
       forwardMobile: input.forwardMobile,
-      aiEnabled: input.aiEnabled,
-      aiServiceId: input.aiServiceId,
     });
 
     const res = this.files.writeFile({
@@ -138,24 +113,13 @@ export class ExtensionsService {
       etag: input.etag,
     });
 
-    // regenerate extension dialplan (AI + mobile forward)
+    // regenerate extension dialplan (mobile forward)
     try {
       const list = this.list();
       if (this.dialplan?.ensureDefaultIncludesDirEarly)
         this.dialplan.ensureDefaultIncludesDirEarly();
       if (this.dialplan?.writeExtensionsSpecial) {
-        const m = this.meta.get().meta;
-        const services = new Map<string, string>();
-        for (const s of m.aiServices ?? []) {
-          if (s?.enabled === false) continue;
-          if (!s?.id || !s?.socketUrl) continue;
-          services.set(String(s.id), String(s.socketUrl));
-        }
-        const defaultUrl =
-          (m.defaultAiServiceId
-            ? (services.get(String(m.defaultAiServiceId)) ?? '')
-            : '') || (services.size ? [...services.values()][0] : '');
-        this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
+        this.dialplan.writeExtensionsSpecial(list);
       }
     } catch {
       // best-effort; do not fail the save if dialplan regeneration fails
@@ -177,18 +141,7 @@ export class ExtensionsService {
       if (this.dialplan?.ensureDefaultIncludesDirEarly)
         this.dialplan.ensureDefaultIncludesDirEarly();
       if (this.dialplan?.writeExtensionsSpecial) {
-        const m = this.meta.get().meta;
-        const services = new Map<string, string>();
-        for (const s of m.aiServices ?? []) {
-          if (s?.enabled === false) continue;
-          if (!s?.id || !s?.socketUrl) continue;
-          services.set(String(s.id), String(s.socketUrl));
-        }
-        const defaultUrl =
-          (m.defaultAiServiceId
-            ? (services.get(String(m.defaultAiServiceId)) ?? '')
-            : '') || (services.size ? [...services.values()][0] : '');
-        this.dialplan.writeExtensionsSpecial(list, { services, defaultUrl });
+        this.dialplan.writeExtensionsSpecial(list);
       }
     } catch {
       // ignore
@@ -224,8 +177,6 @@ export class ExtensionsService {
     outgoingIvr?: string;
     outboundTrunk?: string;
     forwardMobile?: string;
-    aiEnabled?: boolean;
-    aiServiceId?: string;
   }) {
     const callgroupLine = e.callgroup
       ? `      <variable name="callgroup" value="${escapeXml(e.callgroup)}"/>\n`
@@ -247,14 +198,6 @@ export class ExtensionsService {
       ? `      <variable name="adminpanel_outbound_trunk" value="${escapeXml(e.outboundTrunk)}"/>\n`
       : '';
 
-    const aiEnabledLine = e.aiEnabled
-      ? `      <variable name="adminpanel_ai_enabled" value="true"/>\n`
-      : '';
-
-    const aiServiceIdLine = e.aiServiceId
-      ? `      <variable name="adminpanel_ai_service_id" value="${escapeXml(e.aiServiceId)}"/>\n`
-      : '';
-
     return (
       `<include>\n` +
       `  <user id="${escapeXml(e.id)}">\n` +
@@ -274,8 +217,6 @@ export class ExtensionsService {
       outgoingIvrLine +
       outboundTrunkLine +
       forwardMobileLine +
-      aiEnabledLine +
-      aiServiceIdLine +
       `    </variables>\n` +
       `  </user>\n` +
       `</include>\n`

@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpsertExtensionDto {
   @Matches(/^\d+$/)
@@ -39,14 +39,6 @@ export class UpsertExtensionDto {
   @IsOptional()
   @IsString()
   forwardMobile?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  aiEnabled?: boolean;
-
-  @IsOptional()
-  @IsString()
-  aiServiceId?: string;
 
   @IsOptional()
   @IsString()
