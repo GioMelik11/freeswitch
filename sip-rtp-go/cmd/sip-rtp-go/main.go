@@ -2,6 +2,8 @@ package main
 
 import (
 	"crypto/md5"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -1063,7 +1065,8 @@ func runRTPEchoCall(logger *log.Logger, cs *callSession) {
 
 func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 	// AI mode: stream caller audio to a mod_audio_stream-compatible WebSocket server (e.g. whizio on :9094).
-	// We currently only send upstream audio. Playback support can be added later (streamAudio -> RTP).
+	// Upstream: RTP -> PCM16@16k -> WS binary frames
+	// Downstream: WS streamAudio (wav/8k) -> PCM16 -> PCMU RTP (pt=0) -> caller
 	wsURL = strings.TrimSpace(wsURL)
 	if wsURL == "" {
 		runRTPDrainCall(logger, cs)
@@ -1090,6 +1093,12 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 	defer ws.Close()
 	logger.Printf("ws stream: connected url=%q (ext=%s call-id=%s)", wsURL, cs.extID, cs.callID)
 
+	// Single playback worker: stable SSRC/seq/ts and one RTP sender.
+	playQ := make(chan []int16, 32)
+	playSSRC := rand.Uint32()
+	playSeq := uint16(rand.Uint32())
+	playTS := uint32(rand.Uint32())
+
 	// optional metadata (whizio logs it if JSON)
 	meta := map[string]any{
 		"source":     "sip-rtp-go",
@@ -1102,9 +1111,99 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 		_ = ws.WriteMessage(websocket.TextMessage, b)
 	}
 
-	// consume server messages (for now just log the first few)
+	var (
+		mu       sync.Mutex
+		lastAddr net.Addr
+		rx       uint64
+	)
+
+	// Playback worker (continuous 20ms pacing; sends silence when queue is empty).
 	go func() {
-		n := 0
+		t := time.NewTicker(20 * time.Millisecond)
+		defer t.Stop()
+
+		var (
+			buf         []int16
+			markerFirst = true
+		)
+
+		for {
+			select {
+			case <-cs.stopCh:
+				return
+			case pcm := <-playQ:
+				// nil pcm means "clear buffer immediately" (used when switching from hold->AI).
+				if pcm == nil {
+					buf = nil
+					markerFirst = true
+					continue
+				}
+				if len(pcm) == 0 {
+					continue
+				}
+				// Cap buffer to avoid runaway latency (keep last ~2 seconds max).
+				const maxSamples = 8000 * 2
+				if len(buf)+len(pcm) > maxSamples {
+					// drop existing buffer; keep newest chunk
+					buf = buf[:0]
+				}
+				buf = append(buf, pcm...)
+			case <-t.C:
+				// Need RTP remote addr (learned from inbound RTP); if not yet, skip sending.
+				mu.Lock()
+				addr := lastAddr
+				mu.Unlock()
+				if addr == nil {
+					continue
+				}
+
+				// Build one 20ms PCMU frame (160 samples)
+				const frameSamples = 160
+				payload := make([]byte, frameSamples)
+				if len(buf) >= frameSamples {
+					for i := 0; i < frameSamples; i++ {
+						payload[i] = linearToMuLaw(buf[i])
+					}
+					buf = buf[frameSamples:]
+				} else {
+					// μ-law silence
+					for i := 0; i < frameSamples; i++ {
+						payload[i] = 0xFF
+					}
+				}
+
+				p := rtp.Packet{
+					Header: rtp.Header{
+						Version:        2,
+						Marker:         markerFirst,
+						PayloadType:    0, // PCMU
+						SequenceNumber: playSeq,
+						Timestamp:      playTS,
+						SSRC:           playSSRC,
+					},
+					Payload: payload,
+				}
+				markerFirst = false
+				raw, err := p.Marshal()
+				if err == nil {
+					_, _ = cs.rtp.WriteTo(raw, addr)
+				}
+				playSeq++
+				playTS += frameSamples
+			}
+		}
+	}()
+
+	// Beep immediately so we can confirm downlink audio even before Gemini speaks.
+	select {
+	case playQ <- genBeepPcm8k(440, 180):
+	default:
+	}
+
+	// consume server messages and play audio back to caller
+	go func() {
+		aiLogged := false
+		aiBegan := false
 		for {
 			select {
 			case <-cs.stopCh:
@@ -1115,22 +1214,122 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 			if err != nil {
 				return
 			}
-			if mt == websocket.TextMessage {
-				n++
-				if n <= 3 {
-					logger.Printf("ws stream: server msg: %s", strings.TrimSpace(string(msg)))
+			if mt != websocket.TextMessage {
+				continue
+			}
+
+			var m wsStreamMsg
+			if err := json.Unmarshal(msg, &m); err != nil {
+				continue
+			}
+			if m.Type != "streamAudio" {
+				continue
+			}
+			typ := strings.ToLower(strings.TrimSpace(m.Data.AudioDataType))
+			var pcm8k []int16
+			switch typ {
+			case "wav":
+				wavBytes, err := base64.StdEncoding.DecodeString(m.Data.AudioData)
+				if err != nil {
+					continue
 				}
+				pcm, rate, err := wavToPCM16Mono(wavBytes)
+				if err != nil {
+					continue
+				}
+				if m.Data.SampleRate > 0 {
+					rate = m.Data.SampleRate
+				}
+				if rate != 8000 {
+					continue
+				}
+				pcm8k = pcm
+			case "pcm16le":
+				raw, err := base64.StdEncoding.DecodeString(m.Data.AudioData)
+				if err != nil || len(raw) < 2 {
+					continue
+				}
+				rate := m.Data.SampleRate
+				if rate <= 0 {
+					rate = 24000
+				}
+				in := make([]int16, len(raw)/2)
+				for i := 0; i < len(in); i++ {
+					in[i] = int16(binary.LittleEndian.Uint16(raw[i*2 : i*2+2]))
+				}
+				pcm8k = downsampleTo8k(in, rate)
+				if len(pcm8k) == 0 {
+					continue
+				}
+			default:
+				continue
+			}
+
+			// If this looks like Gemini (24k/16k), flush hold queue so AI starts immediately.
+			if !aiBegan && (m.Data.SampleRate >= 16000) {
+				aiBegan = true
+				// Clear playback buffer in the worker.
+				select {
+				case playQ <- nil:
+				default:
+				}
+			}
+
+			// log once so we can confirm we are actually receiving AI audio
+			if !aiLogged {
+				aiLogged = true
+				// rough RMS to catch "all zeros" problems
+				samples := len(pcm8k)
+				n := samples
+				if n > 800 {
+					n = 800
+				}
+				var sumSq float64
+				for i := 0; i < n; i++ {
+					v := float64(pcm8k[i])
+					sumSq += v * v
+				}
+				rms := 0.0
+				if n > 0 {
+					rms = (sumSq / float64(n))
+				}
+				logger.Printf("ws stream: ai audio in type=%s rate=%d samples8k=%d rms≈%.0f", typ, m.Data.SampleRate, len(pcm8k), rms)
+			}
+
+			// wait for RTP remote addr (learned from inbound RTP)
+			var addr net.Addr
+			deadline := time.Now().Add(3 * time.Second)
+			for time.Now().Before(deadline) {
+				mu.Lock()
+				addr = lastAddr
+				mu.Unlock()
+				if addr != nil {
+					break
+				}
+				select {
+				case <-cs.stopCh:
+					return
+				case <-time.After(10 * time.Millisecond):
+				}
+			}
+			if addr == nil {
+				continue
+			}
+
+			// enqueue for single playback worker
+			select {
+			case playQ <- pcm8k:
+			default:
 			}
 		}
 	}()
 
 	buf := make([]byte, 2048)
 	var p rtp.Packet
-	var rx uint64
 
 	for {
 		_ = cs.rtp.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
-		n, _, err := cs.rtp.ReadFrom(buf)
+		n, addr, err := cs.rtp.ReadFrom(buf)
 		select {
 		case <-cs.stopCh:
 			return
@@ -1145,6 +1344,10 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 		if err := p.Unmarshal(buf[:n]); err != nil {
 			continue
 		}
+		mu.Lock()
+		lastAddr = addr
+		rx++
+		mu.Unlock()
 		pt := p.PayloadType
 		payload := p.Payload
 		if len(payload) == 0 {
@@ -1188,11 +1391,163 @@ func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
 		if err := ws.WriteMessage(websocket.BinaryMessage, out); err != nil {
 			return
 		}
-		rx++
 		if rx == 1 {
 			logger.Printf("ws stream: first pcm frame bytes=%d pt=%d", len(out), pt)
 		}
 	}
+}
+
+type wsStreamMsg struct {
+	Type string `json:"type"`
+	Data struct {
+		AudioDataType string `json:"audioDataType"`
+		SampleRate    int    `json:"sampleRate"`
+		AudioData     string `json:"audioData"`
+	} `json:"data"`
+}
+
+func wavToPCM16Mono(wav []byte) ([]int16, int, error) {
+	// Minimal WAV parser for PCM16 mono (like whizio pcm16ToWav output).
+	// Expects a standard 44-byte header.
+	if len(wav) < 44 {
+		return nil, 0, fmt.Errorf("wav too small: %d", len(wav))
+	}
+	if string(wav[0:4]) != "RIFF" || string(wav[8:12]) != "WAVE" {
+		return nil, 0, fmt.Errorf("not a wav")
+	}
+	numChannels := int(binary.LittleEndian.Uint16(wav[22:24]))
+	sampleRate := int(binary.LittleEndian.Uint32(wav[24:28]))
+	bitsPerSample := int(binary.LittleEndian.Uint16(wav[34:36]))
+	if numChannels != 1 || bitsPerSample != 16 {
+		return nil, sampleRate, fmt.Errorf("unsupported wav: channels=%d bits=%d", numChannels, bitsPerSample)
+	}
+	data := wav[44:]
+	samples := len(data) / 2
+	out := make([]int16, samples)
+	for i := 0; i < samples; i++ {
+		out[i] = int16(binary.LittleEndian.Uint16(data[i*2 : i*2+2]))
+	}
+	return out, sampleRate, nil
+}
+
+func downsampleTo8k(in []int16, inRate int) []int16 {
+	// Minimal resampler for common rates from Gemini/bridge.
+	// - 24k -> 8k : take every 3rd sample
+	// - 16k -> 8k : take every 2nd sample
+	// - 8k -> 8k : passthrough
+	switch inRate {
+	case 8000:
+		out := make([]int16, len(in))
+		copy(out, in)
+		return out
+	case 16000:
+		out := make([]int16, 0, len(in)/2)
+		for i := 0; i+1 < len(in); i += 2 {
+			out = append(out, in[i])
+		}
+		return out
+	case 24000:
+		out := make([]int16, 0, len(in)/3)
+		for i := 0; i+2 < len(in); i += 3 {
+			out = append(out, in[i])
+		}
+		return out
+	default:
+		// unknown rate
+		return nil
+	}
+}
+
+func sendPcm8kToRtpPcmu(cs *callSession, addr net.Addr, pcm8k []int16, ssrc uint32, seq uint16, ts uint32) (uint16, uint32) {
+	// 20ms @ 8k = 160 samples
+	const frameSamples = 160
+
+	firstPkt := true
+	for off := 0; off+frameSamples <= len(pcm8k); off += frameSamples {
+		select {
+		case <-cs.stopCh:
+			return seq, ts
+		default:
+		}
+		payload := make([]byte, frameSamples)
+		for i := 0; i < frameSamples; i++ {
+			payload[i] = linearToMuLaw(pcm8k[off+i])
+		}
+		p := rtp.Packet{
+			Header: rtp.Header{
+				Version:        2,
+				Marker:         firstPkt,
+				PayloadType:    0, // PCMU
+				SequenceNumber: seq,
+				Timestamp:      ts,
+				SSRC:           ssrc,
+			},
+			Payload: payload,
+		}
+		firstPkt = false
+		raw, err := p.Marshal()
+		if err == nil {
+			_, _ = cs.rtp.WriteTo(raw, addr)
+		}
+		seq++
+		ts += frameSamples
+		time.Sleep(20 * time.Millisecond)
+	}
+	return seq, ts
+}
+
+func linearToMuLaw(sample int16) byte {
+	// Linear PCM16 to G.711 μ-law
+	const (
+		muLawBias = 0x84
+		muLawClip = 32635
+	)
+	s := int(sample)
+	sign := 0
+	if s < 0 {
+		sign = 0x80
+		s = -s
+		if s > muLawClip {
+			s = muLawClip
+		}
+	} else {
+		if s > muLawClip {
+			s = muLawClip
+		}
+	}
+	s += muLawBias
+	exponent := 7
+	for expMask := 0x4000; (s&expMask) == 0 && exponent > 0; expMask >>= 1 {
+		exponent--
+	}
+	mantissa := (s >> (exponent + 3)) & 0x0F
+	u := ^byte(sign | (exponent << 4) | mantissa)
+	return u
+}
+
+func genBeepPcm8k(freqHz int, ms int) []int16 {
+	// Square-ish beep (no floats) - enough to validate downlink RTP audio.
+	if freqHz <= 0 || ms <= 0 {
+		return nil
+	}
+	samples := (8000 * ms) / 1000
+	if samples < 1 {
+		samples = 1
+	}
+	out := make([]int16, samples)
+	period := 8000 / freqHz
+	if period < 2 {
+		period = 2
+	}
+	amp := int16(7000)
+	for i := 0; i < samples; i++ {
+		if (i % period) < (period / 2) {
+			out[i] = amp
+		} else {
+			out[i] = -amp
+		}
+	}
+	return out
 }
 
 func muLawToLinear(u byte) int16 {
