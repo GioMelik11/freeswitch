@@ -27,6 +27,8 @@ import { NatService } from './nat/nat.service';
 import { SettingsController } from './settings/settings.controller';
 import { SettingsService } from './settings/settings.service';
 import { PbxBootstrapService } from './pbx-bootstrap.service';
+import { SipAiController } from './sip-ai/sip-ai.controller';
+import { SipAiService } from './sip-ai/sip-ai.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -40,6 +42,7 @@ import { PbxBootstrapService } from './pbx-bootstrap.service';
     OptionsController,
     StatusController,
     AiController,
+    SipAiController,
     FreeswitchController,
     ConsoleController,
     NatController,
@@ -54,6 +57,7 @@ import { PbxBootstrapService } from './pbx-bootstrap.service';
     SoundsService,
     EslService,
     AiService,
+    SipAiService,
     ConsoleService,
     NatService,
     SettingsService,

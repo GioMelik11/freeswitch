@@ -20,6 +20,8 @@ services:
     restart: unless-stopped
     # Must be host networking because freeswitch is host networking (127.0.0.1 SIP/RTP)
     network_mode: "host"
+    volumes:
+      - ./admin-panel/data:/data:ro
     environment:
       # In WSL host-network mode, FreeSWITCH binds to the WSL IP (not always 127.0.0.1).
       # Use "auto" so sip-rtp-go discovers the correct local IP and talks to FreeSWITCH reliably.
@@ -34,6 +36,7 @@ services:
       - SDP_IP=auto
       - REGISTER_EXPIRES=300
       - LOG_LEVEL=info
+      - SIP_AI_CONFIG_PATH=/data/sip-ai.json
 
   fs-admin-backend:
     image: node:20-bookworm-slim
@@ -47,6 +50,7 @@ services:
       - CORS_ORIGIN=http://localhost:4200
       - DB_PATH=/data/admin.sqlite
       - BACKUPS_DIR=/data/backups
+      - SIP_AI_CONFIG_PATH=/data/sip-ai.json
       # Disable built-in mod_audio_stream *test* server in admin-panel backend to avoid port conflicts.
       # We'll run a dedicated ws-audio-test service on :9096 instead.
       - AUDIO_STREAM_TEST_ENABLED=false

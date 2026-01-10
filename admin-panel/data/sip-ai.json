@@ -1,0 +1,4 @@
+{
+  "geminiSocketUrl": "wss://example",
+  "extensions": ["1001", "1003"]
+}

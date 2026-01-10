@@ -10,6 +10,8 @@ services:
     container_name: sip-rtp-go
     restart: unless-stopped
     network_mode: "host"
+    volumes:
+      - ../admin-panel/data:/data:ro
     environment:
       - SIP_SERVER_ADDR=auto:5060
       - SIP_DOMAIN=auto
@@ -22,5 +24,4 @@ services:
       - SDP_IP=auto
       - REGISTER_EXPIRES=300
       - LOG_LEVEL=info
-
-
+      - SIP_AI_CONFIG_PATH=/data/sip-ai.json

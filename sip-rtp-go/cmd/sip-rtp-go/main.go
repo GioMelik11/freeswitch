@@ -2,9 +2,11 @@ package main
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -13,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"sort"
 
 	"github.com/pion/rtp"
 )
@@ -20,15 +23,14 @@ import (
 type cfg struct {
 	sipServerAddr   string
 	sipDomain       string
-	sipUser         string
 	sipPass         string
 	sipListenAddr   string
-	sipRegisterAddr string
 	sipContactHost  string
-	rtpListenAddr   string
 	sdpIP           string
 	registerExpires int
 	logLevel        string
+	sipAiConfigPath string
+	sipUserFallback string
 }
 
 func getenv(k, def string) string {
@@ -74,15 +76,14 @@ func loadCfg() cfg {
 	return cfg{
 		sipServerAddr:   serverAddr,
 		sipDomain:       domain,
-		sipUser:         getenv("SIP_USER", "1098"),
+		sipUserFallback: getenv("SIP_USER", "1098"),
 		sipPass:         getenv("SIP_PASS", "1234"),
 		sipListenAddr:   getenv("SIP_LISTEN_ADDR", "0.0.0.0:5090"),
-		sipRegisterAddr: getenv("SIP_REGISTER_LOCAL_ADDR", "0.0.0.0:5091"),
 		sipContactHost:  contactHost,
-		rtpListenAddr:   getenv("RTP_LISTEN_ADDR", "0.0.0.0:40000"),
 		sdpIP:           sdpIP,
 		registerExpires: mustParseInt("REGISTER_EXPIRES", 300),
 		logLevel:        getenv("LOG_LEVEL", "info"),
+		sipAiConfigPath: getenv("SIP_AI_CONFIG_PATH", "/data/sip-ai.json"),
 	}
 }
 
@@ -98,6 +99,63 @@ func detectLocalIPv4() string {
 	}
 	// Fallback
 	return "127.0.0.1"
+}
+
+type sipAiConfig struct {
+	GeminiSocketURL string   `json:"geminiSocketUrl"`
+	Extensions      []string `json:"extensions"`
+}
+
+func loadSipAiConfig(path string) sipAiConfig {
+	f, err := os.Open(path)
+	if err != nil {
+		return sipAiConfig{}
+	}
+	defer f.Close()
+	dec := json.NewDecoder(io.LimitReader(f, 1<<20))
+	dec.DisallowUnknownFields()
+	var cfg sipAiConfig
+	if err := dec.Decode(&cfg); err != nil {
+		return sipAiConfig{}
+	}
+	// normalize extensions
+	out := make([]string, 0, len(cfg.Extensions))
+	seen := map[string]bool{}
+	for _, x := range cfg.Extensions {
+		id := strings.TrimSpace(x)
+		if !isDigits(id) {
+			continue
+		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	sortNumericStrings(out)
+	cfg.Extensions = out
+	cfg.GeminiSocketURL = strings.TrimSpace(cfg.GeminiSocketURL)
+	return cfg
+}
+
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+func sortNumericStrings(a []string) {
+	sort.Slice(a, func(i, j int) bool {
+		ni, _ := strconv.Atoi(a[i])
+		nj, _ := strconv.Atoi(a[j])
+		return ni < nj
+	})
 }
 
 type sipMsg struct {
@@ -283,11 +341,30 @@ func buildAuthorization(method, uri, username, password string, ch digestChallen
 	return b.String()
 }
 
-type callState struct {
-	mu         sync.Mutex
-	active     bool
-	dialogID   string // Call-ID
-	serverTo   string // To with tag (stable for the dialog)
+type regWorker struct {
+	id     string
+	stopCh chan struct{}
+	doneCh chan struct{}
+}
+
+type runtimeState struct {
+	mu sync.RWMutex
+
+	// which extensions are currently enabled for SIP AI
+	enabledExt map[string]bool
+
+	// registration workers by extension id
+	workers map[string]*regWorker
+
+	// active calls by Call-ID
+	calls map[string]*callSession
+}
+
+type callSession struct {
+	callID string
+	extID  string
+	rtp    net.PacketConn
+	stopCh chan struct{}
 }
 
 func main() {
@@ -295,7 +372,7 @@ func main() {
 	c := loadCfg()
 
 	logger := log.New(os.Stdout, "sip-rtp-go: ", log.LstdFlags|log.Lmicroseconds)
-	logger.Printf("starting (sip=%s, rtp=%s, user=%s)", c.sipListenAddr, c.rtpListenAddr, c.sipUser)
+	logger.Printf("starting (sip=%s, sipAiConfig=%s)", c.sipListenAddr, c.sipAiConfigPath)
 
 	// SIP UDP socket for incoming calls (UAS)
 	sipSrvConn, err := net.ListenPacket("udp", c.sipListenAddr)
@@ -304,37 +381,14 @@ func main() {
 	}
 	defer sipSrvConn.Close()
 
-	// Separate SIP UDP socket for REGISTER client traffic (avoids read races)
-	sipRegConn, err := net.ListenPacket("udp", c.sipRegisterAddr)
-	if err != nil {
-		logger.Fatalf("listen sip register %s: %v", c.sipRegisterAddr, err)
+	st := &runtimeState{
+		enabledExt: map[string]bool{},
+		workers:    map[string]*regWorker{},
+		calls:      map[string]*callSession{},
 	}
-	defer sipRegConn.Close()
 
-	// RTP echo socket
-	rtpConn, err := net.ListenPacket("udp", c.rtpListenAddr)
-	if err != nil {
-		logger.Fatalf("listen rtp %s: %v", c.rtpListenAddr, err)
-	}
-	defer rtpConn.Close()
-
-	var st callState
-
-	go func() {
-		if err := runRTPEcho(logger, rtpConn); err != nil {
-			logger.Fatalf("rtp echo failed: %v", err)
-		}
-	}()
-
-	// Periodic REGISTER refresh
-	go func() {
-		for {
-			if err := doRegister(logger, sipRegConn, c); err != nil {
-				logger.Printf("register error: %v", err)
-			}
-			time.Sleep(time.Duration(c.registerExpires/2) * time.Second)
-		}
-	}()
+	// Watch SIP AI config file and keep registrations in sync.
+	go watchSipAiConfig(logger, c, st)
 
 	buf := make([]byte, 64*1024)
 	for {
@@ -343,11 +397,11 @@ func main() {
 			logger.Fatalf("sip read: %v", err)
 		}
 		pkt := append([]byte(nil), buf[:n]...)
-		go handleSIPPacket(logger, sipSrvConn, addr, pkt, c, &st)
+		go handleSIPPacket(logger, sipSrvConn, addr, pkt, c, st)
 	}
 }
 
-func doRegister(logger *log.Logger, conn net.PacketConn, c cfg) error {
+func doRegister(logger *log.Logger, conn net.PacketConn, c cfg, username string) error {
 	serverAddr, err := net.ResolveUDPAddr("udp", c.sipServerAddr)
 	if err != nil {
 		return err
@@ -357,24 +411,28 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg) error {
 	if err != nil {
 		return fmt.Errorf("bad SIP_LISTEN_ADDR %q: %w", c.sipListenAddr, err)
 	}
-	contactURI := fmt.Sprintf("sip:%s@%s;transport=udp", c.sipUser, net.JoinHostPort(c.sipContactHost, sipListenPort))
+	contactURI := fmt.Sprintf("sip:%s@%s;transport=udp", username, net.JoinHostPort(c.sipContactHost, sipListenPort))
 	reqURI := fmt.Sprintf("sip:%s", c.sipDomain)
 
 	fromTag := randHex(10)
 	callID := fmt.Sprintf("%s@%s", randHex(16), c.sipContactHost)
 
 	send := func(cseq int, auth string) error {
-		regHost, regPort, _ := net.SplitHostPort(c.sipRegisterAddr)
-		if regHost == "" {
-			regHost = c.sipContactHost
+		la, _ := conn.LocalAddr().(*net.UDPAddr)
+		regHost := c.sipContactHost
+		regPort := "0"
+		if la != nil && la.Port > 0 {
+			// Keep host stable (Contact host) and only use the local port for Via.
+			// Avoid IPv6 '::' showing up here in dual-stack environments.
+			regPort = strconv.Itoa(la.Port)
 		}
 		branch := "z9hG4bK" + randHex(12)
 		var b strings.Builder
 		b.WriteString(fmt.Sprintf("REGISTER %s SIP/2.0\r\n", reqURI))
 		b.WriteString(fmt.Sprintf("Via: SIP/2.0/UDP %s:%s;branch=%s;rport\r\n", regHost, regPort, branch))
 		b.WriteString("Max-Forwards: 70\r\n")
-		b.WriteString(fmt.Sprintf("From: <sip:%s@%s>;tag=%s\r\n", c.sipUser, c.sipDomain, fromTag))
-		b.WriteString(fmt.Sprintf("To: <sip:%s@%s>\r\n", c.sipUser, c.sipDomain))
+		b.WriteString(fmt.Sprintf("From: <sip:%s@%s>;tag=%s\r\n", username, c.sipDomain, fromTag))
+		b.WriteString(fmt.Sprintf("To: <sip:%s@%s>\r\n", username, c.sipDomain))
 		b.WriteString(fmt.Sprintf("Call-ID: %s\r\n", callID))
 		b.WriteString(fmt.Sprintf("CSeq: %d REGISTER\r\n", cseq))
 		b.WriteString(fmt.Sprintf("Contact: <%s>\r\n", contactURI))
@@ -415,7 +473,7 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg) error {
 	if err != nil {
 		return err
 	}
-	auth := buildAuthorization("REGISTER", reqURI, c.sipUser, c.sipPass, ch, 1)
+	auth := buildAuthorization("REGISTER", reqURI, username, c.sipPass, ch, 1)
 
 	// 2) Send authenticated REGISTER
 	if err := send(2, auth); err != nil {
@@ -428,7 +486,7 @@ func doRegister(logger *log.Logger, conn net.PacketConn, c cfg) error {
 	if resp2.status != 200 {
 		return fmt.Errorf("register failed: %d %s", resp2.status, resp2.reason)
 	}
-	logger.Printf("registered as %s (expires=%ds)", c.sipUser, c.registerExpires)
+	logger.Printf("registered as %s (expires=%ds)", username, c.registerExpires)
 	return nil
 }
 
@@ -459,13 +517,110 @@ func waitSIPResponse(conn net.PacketConn, timeout time.Duration, forMethod strin
 	}
 }
 
-func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt []byte, c cfg, st *callState) {
+func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
+	apply := func(exts []string) {
+		next := map[string]bool{}
+		for _, id := range exts {
+			next[id] = true
+		}
+
+		st.mu.Lock()
+		defer st.mu.Unlock()
+
+		// stop removed workers
+		for id, w := range st.workers {
+			if next[id] {
+				continue
+			}
+			close(w.stopCh)
+			delete(st.workers, id)
+		}
+		// start new workers
+		for id := range next {
+			if _, ok := st.workers[id]; ok {
+				continue
+			}
+			w := &regWorker{id: id, stopCh: make(chan struct{}), doneCh: make(chan struct{})}
+			st.workers[id] = w
+			go func(id string, w *regWorker) {
+				defer close(w.doneCh)
+				// Force IPv4 for REGISTER transactions (FreeSWITCH internal profile is IPv4 here).
+				regConn, err := net.ListenPacket("udp4", "0.0.0.0:0")
+				if err != nil {
+					logger.Printf("register[%s] listen error: %v", id, err)
+					return
+				}
+				defer regConn.Close()
+
+				for {
+					select {
+					case <-w.stopCh:
+						return
+					default:
+					}
+
+					if err := doRegister(logger, regConn, c, id); err != nil {
+						logger.Printf("register[%s] error: %v", id, err)
+					}
+					// refresh
+					sleep := time.Duration(max(10, c.registerExpires/2)) * time.Second
+					select {
+					case <-w.stopCh:
+						return
+					case <-time.After(sleep):
+					}
+				}
+			}(id, w)
+		}
+
+		st.enabledExt = next
+	}
+
+	// initial apply
+	for {
+		file := loadSipAiConfig(c.sipAiConfigPath)
+		exts := file.Extensions
+		if len(exts) == 0 && isDigits(c.sipUserFallback) {
+			exts = []string{c.sipUserFallback}
+		}
+		apply(exts)
+		logger.Printf("sip-ai config loaded: extensions=%v gemini=%v", exts, file.GeminiSocketURL != "")
+		break
+	}
+
+	t := time.NewTicker(2 * time.Second)
+	defer t.Stop()
+	var last string
+	for range t.C {
+		raw, _ := os.ReadFile(c.sipAiConfigPath)
+		cur := string(raw)
+		if cur == last {
+			continue
+		}
+		last = cur
+		file := loadSipAiConfig(c.sipAiConfigPath)
+		exts := file.Extensions
+		if len(exts) == 0 && isDigits(c.sipUserFallback) {
+			exts = []string{c.sipUserFallback}
+		}
+		apply(exts)
+		logger.Printf("sip-ai config updated: extensions=%v", exts)
+	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt []byte, c cfg, st *runtimeState) {
 	m, err := parseSIP(pkt)
 	if err != nil {
 		return
 	}
 	if m.method == "" {
-		// response - ignore (REGISTER loop reads synchronously)
 		return
 	}
 
@@ -475,70 +630,124 @@ func handleSIPPacket(logger *log.Logger, conn net.PacketConn, addr net.Addr, pkt
 	case "ACK":
 		// no-op
 	case "CANCEL":
-		// Call setup cancelled by caller
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", nil, nil)
-		st.mu.Lock()
-		st.active = false
-		st.dialogID = ""
-		st.serverTo = ""
-		st.mu.Unlock()
-		logger.Printf("call cancelled (CANCEL)")
+		endCall(logger, m.header("call-id"), st)
 	case "BYE":
-		handleBye(logger, conn, addr, m, st)
+		sendSIPResponse(conn, addr, m, "", "", 200, "OK", nil, nil)
+		endCall(logger, m.header("call-id"), st)
 	case "OPTIONS":
-		// Keepalive/feature probe
 		sendSIPResponse(conn, addr, m, "", "", 200, "OK", map[string][]string{
 			"Allow": {"INVITE, ACK, BYE, CANCEL, OPTIONS"},
 		}, nil)
 	default:
-		// Minimal: respond 501 to other methods.
 		sendSIPResponse(conn, addr, m, "", "", 501, "Not Implemented", nil, nil)
 	}
 }
 
-func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req sipMsg, c cfg, st *callState) {
-	st.mu.Lock()
-	if st.active {
-		st.mu.Unlock()
-		sendSIPResponse(conn, addr, req, "", "", 486, "Busy Here", nil, nil)
-		logger.Printf("incoming INVITE while busy -> 486 (from=%s)", addr.String())
+func endCall(logger *log.Logger, callID string, st *runtimeState) {
+	if callID == "" {
 		return
 	}
-	st.active = true
-	st.dialogID = req.header("call-id")
-	toWithTag := ensureToHasTag(req.header("to"))
-	st.serverTo = toWithTag
+	st.mu.Lock()
+	cs := st.calls[callID]
+	if cs != nil {
+		delete(st.calls, callID)
+	}
 	st.mu.Unlock()
+	if cs == nil {
+		return
+	}
+	close(cs.stopCh)
+	_ = cs.rtp.Close()
+	logger.Printf("call ended (call-id=%s ext=%s)", cs.callID, cs.extID)
+}
 
+func parseToUser(req sipMsg) string {
+	to := req.header("to")
+	l := strings.ToLower(to)
+	i := strings.Index(l, "sip:")
+	if i < 0 {
+		return ""
+	}
+	rest := to[i+4:]
+	// user ends at @ or ; or >
+	end := len(rest)
+	for j, r := range rest {
+		if r == '@' || r == ';' || r == '>' {
+			end = j
+			break
+		}
+	}
+	user := strings.TrimSpace(rest[:end])
+	if !isDigits(user) {
+		return ""
+	}
+	return user
+}
+
+func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req sipMsg, c cfg, st *runtimeState) {
+	extID := parseToUser(req)
+	if extID == "" {
+		sendSIPResponse(conn, addr, req, "", "", 400, "Bad Request", nil, nil)
+		return
+	}
+
+	st.mu.RLock()
+	enabled := st.enabledExt[extID]
+	_, inCall := st.calls[req.header("call-id")]
+	st.mu.RUnlock()
+
+	if !enabled {
+		sendSIPResponse(conn, addr, req, "", "", 404, "Not Found", nil, nil)
+		return
+	}
+	if inCall {
+		sendSIPResponse(conn, addr, req, "", "", 486, "Busy Here", nil, nil)
+		return
+	}
+
+	callID := req.header("call-id")
+	if callID == "" {
+		sendSIPResponse(conn, addr, req, "", "", 400, "Bad Request", nil, nil)
+		return
+	}
+
+	// allocate per-call RTP socket
+	rtpConn, err := net.ListenPacket("udp", "0.0.0.0:0")
+	if err != nil {
+		sendSIPResponse(conn, addr, req, "", "", 500, "Server Error", nil, nil)
+		return
+	}
+	ua, _ := rtpConn.LocalAddr().(*net.UDPAddr)
+	rtpPort := 0
+	if ua != nil {
+		rtpPort = ua.Port
+	}
+
+	toWithTag := ensureToHasTag(req.header("to"))
 	sendSIPResponse(conn, addr, req, toWithTag, "", 100, "Trying", nil, nil)
 	sendSIPResponse(conn, addr, req, toWithTag, "", 180, "Ringing", nil, nil)
 
-	rtpPort := portFromAddr(c.rtpListenAddr)
 	sdp := buildSDP(c.sdpIP, rtpPort)
 	_, sipListenPort, _ := net.SplitHostPort(c.sipListenAddr)
 	contact := ""
 	if sipListenPort != "" {
-		contact = fmt.Sprintf("<sip:%s@%s:%s;transport=udp>", c.sipUser, c.sipContactHost, sipListenPort)
+		contact = fmt.Sprintf("<sip:%s@%s:%s;transport=udp>", extID, c.sipContactHost, sipListenPort)
 	}
 	extra := map[string][]string{
 		"Content-Type": {"application/sdp"},
 		"Allow":        {"INVITE, ACK, BYE, CANCEL, OPTIONS"},
 		"Supported":    {"replaces, timer"},
 	}
-	// 200 OK
 	sendSIPResponse(conn, addr, req, toWithTag, contact, 200, "OK", extra, []byte(sdp))
 
-	logger.Printf("call answered (rtp=%s:%d)", c.sdpIP, rtpPort)
-}
-
-func handleBye(logger *log.Logger, conn net.PacketConn, addr net.Addr, req sipMsg, st *callState) {
-	sendSIPResponse(conn, addr, req, "", "", 200, "OK", nil, nil)
+	cs := &callSession{callID: callID, extID: extID, rtp: rtpConn, stopCh: make(chan struct{})}
 	st.mu.Lock()
-	st.active = false
-	st.dialogID = ""
-	st.serverTo = ""
+	st.calls[callID] = cs
 	st.mu.Unlock()
-	logger.Printf("call ended (BYE)")
+
+	go runRTPEchoCall(logger, cs)
+	logger.Printf("call answered (ext=%s rtp=%s:%d)", extID, c.sdpIP, rtpPort)
 }
 
 func buildSDP(ip string, port int) string {
@@ -558,15 +767,6 @@ func buildSDP(ip string, port int) string {
 		"a=sendrecv",
 		"",
 	}, "\r\n")
-}
-
-func portFromAddr(addr string) int {
-	_, p, err := net.SplitHostPort(addr)
-	if err != nil {
-		return 0
-	}
-	n, _ := strconv.Atoi(p)
-	return n
 }
 
 func ensureToHasTag(to string) string {
@@ -626,8 +826,8 @@ func sendSIPResponse(conn net.PacketConn, addr net.Addr, req sipMsg, toOverride 
 	_, _ = conn.WriteTo([]byte(b.String()), addr)
 }
 
-func runRTPEcho(logger *log.Logger, conn net.PacketConn) error {
-	// We rewrite SSRC to avoid collisions and keep payload untouched.
+func runRTPEchoCall(logger *log.Logger, cs *callSession) {
+	// rewrite SSRC to avoid collisions
 	ssrc := rand.Uint32()
 	buf := make([]byte, 2048)
 	var p rtp.Packet
@@ -640,29 +840,38 @@ func runRTPEcho(logger *log.Logger, conn net.PacketConn) error {
 		lastPT   uint8
 	)
 
+	t := time.NewTicker(1 * time.Second)
+	defer t.Stop()
+
 	go func() {
-		t := time.NewTicker(1 * time.Second)
-		defer t.Stop()
 		for range t.C {
 			mu.Lock()
 			a := lastAddr
 			rxi := rx
 			txi := tx
 			pt := lastPT
-			// reset counters each second for a simple "rate" view
 			rx = 0
 			tx = 0
 			mu.Unlock()
 			if a != "" && (rxi > 0 || txi > 0) {
-				logger.Printf("rtp echo: addr=%s pt=%d rx=%dpps tx=%dpps", a, pt, rxi, txi)
+				logger.Printf("rtp echo: ext=%s addr=%s pt=%d rx=%dpps tx=%dpps", cs.extID, a, pt, rxi, txi)
 			}
 		}
 	}()
 
 	for {
-		n, addr, err := conn.ReadFrom(buf)
+		_ = cs.rtp.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+		n, addr, err := cs.rtp.ReadFrom(buf)
+		select {
+		case <-cs.stopCh:
+			return
+		default:
+		}
 		if err != nil {
-			return err
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				continue
+			}
+			return
 		}
 		if err := p.Unmarshal(buf[:n]); err != nil {
 			continue
@@ -683,7 +892,6 @@ func runRTPEcho(logger *log.Logger, conn net.PacketConn) error {
 				SequenceNumber: p.SequenceNumber,
 				Timestamp:      p.Timestamp,
 				SSRC:           ssrc,
-				CSRC:           nil,
 			},
 			Payload: append([]byte(nil), p.Payload...),
 		}
@@ -691,7 +899,7 @@ func runRTPEcho(logger *log.Logger, conn net.PacketConn) error {
 		if err != nil {
 			continue
 		}
-		_, _ = conn.WriteTo(raw, addr)
+		_, _ = cs.rtp.WriteTo(raw, addr)
 		mu.Lock()
 		tx++
 		mu.Unlock()

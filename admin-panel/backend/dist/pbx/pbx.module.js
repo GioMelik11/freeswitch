@@ -36,6 +36,8 @@ const nat_service_1 = require("./nat/nat.service");
 const settings_controller_1 = require("./settings/settings.controller");
 const settings_service_1 = require("./settings/settings.service");
 const pbx_bootstrap_service_1 = require("./pbx-bootstrap.service");
+const sip_ai_controller_1 = require("./sip-ai/sip-ai.controller");
+const sip_ai_service_1 = require("./sip-ai/sip-ai.service");
 let PbxModule = class PbxModule {
 };
 exports.PbxModule = PbxModule;
@@ -52,6 +54,7 @@ exports.PbxModule = PbxModule = __decorate([
             options_controller_1.OptionsController,
             status_controller_1.StatusController,
             ai_controller_1.AiController,
+            sip_ai_controller_1.SipAiController,
             freeswitch_controller_1.FreeswitchController,
             console_controller_1.ConsoleController,
             nat_controller_1.NatController,
@@ -66,6 +69,7 @@ exports.PbxModule = PbxModule = __decorate([
             sounds_service_1.SoundsService,
             esl_service_1.EslService,
             ai_service_1.AiService,
+            sip_ai_service_1.SipAiService,
             console_service_1.ConsoleService,
             nat_service_1.NatService,
             settings_service_1.SettingsService,

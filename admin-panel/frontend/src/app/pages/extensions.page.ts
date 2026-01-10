@@ -19,8 +19,6 @@ type Extension = {
   outgoingSound?: string;
   outboundTrunk?: string;
   forwardMobile?: string;
-  aiEnabled?: boolean;
-  aiServiceId?: string;
 };
 
 @Component({
@@ -62,7 +60,7 @@ type Extension = {
         <div class="col-span-2">Ext</div>
         <div class="col-span-4">Caller ID Name</div>
         <div class="col-span-2">Caller ID #</div>
-        <div class="col-span-1">AI</div>
+        <div class="col-span-1">SIP AI</div>
         <div class="col-span-3 text-right">Actions</div>
       </div>
       @for (e of paged(); track e.id) {
@@ -73,13 +71,13 @@ type Extension = {
           <div class="col-span-1">
             <span
               class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px]"
-              [class.border-emerald-800]="e.aiEnabled"
-              [class.text-emerald-200]="e.aiEnabled"
-              [class.border-slate-800]="!e.aiEnabled"
-              [class.text-slate-300]="!e.aiEnabled"
-              [title]="aiTooltip(e)"
+              [class.border-emerald-800]="sipAiEnabled(e.id)"
+              [class.text-emerald-200]="sipAiEnabled(e.id)"
+              [class.border-slate-800]="!sipAiEnabled(e.id)"
+              [class.text-slate-300]="!sipAiEnabled(e.id)"
+              [title]="sipAiTooltip(e.id)"
             >
-              {{ e.aiEnabled ? 'ON' : 'OFF' }}
+              {{ sipAiEnabled(e.id) ? 'ON' : 'OFF' }}
             </span>
           </div>
           <div class="col-span-3 flex justify-end gap-2">
@@ -194,37 +192,23 @@ type Extension = {
 
             <div class="sm:col-span-2 rounded-xl border border-slate-800 bg-slate-900/20 p-3">
               <div class="text-xs text-slate-300 mb-2">Incoming call routing (this extension)</div>
-              <label class="flex items-center gap-2 text-sm text-slate-200">
-                <input type="checkbox" class="accent-indigo-600"
-                       [checked]="form.controls.aiEnabled.value"
-                       (change)="form.controls.aiEnabled.setValue($any($event.target).checked)" />
-                Route calls to AI service
-              </label>
-              @if (form.controls.aiEnabled.value) {
-                <div class="mt-2">
-                  <div class="text-[11px] text-slate-400 mb-1">AI service (socket)</div>
-                  <app-search-select
-                    [items]="aiServiceItems()"
-                    [value]="form.controls.aiServiceId.value"
-                    (valueChange)="form.controls.aiServiceId.setValue($event)"
-                    placeholder="(default)"
-                    [allowCustom]="false"
-                    [mono]="true"
-                    [showValue]="true"
-                  />
-                </div>
-              }
-              <div class="mt-2">
+              <div class="text-sm text-slate-200">
+                SIP AI:
+                <span class="ml-2 font-mono" [class.text-emerald-300]="sipAiEnabled(form.controls.id.value)" [class.text-slate-400]="!sipAiEnabled(form.controls.id.value)">
+                  {{ sipAiEnabled(form.controls.id.value) ? 'ENABLED' : 'DISABLED' }}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 mt-2">
+                Configure SIP AI extensions from the <span class="font-medium">SIP AI</span> page.
+              </div>
+
+              <div class="mt-3">
                 <div class="text-[11px] text-slate-400 mb-1">If not answered → forward to mobile (optional)</div>
                 <input
                   class="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 font-mono text-sm"
                   formControlName="forwardMobile"
                   placeholder="+9955XXXXXXX"
-                  [disabled]="form.controls.aiEnabled.value"
                 />
-                <div class="text-[11px] text-slate-400 mt-1">
-                  If AI is enabled, mobile forwarding is ignored.
-                </div>
               </div>
             </div>
 
@@ -248,6 +232,7 @@ export class ExtensionsPage {
   error = signal<string | null>(null);
   saving = signal(false);
   regs = signal<Record<string, { raw: string }>>({});
+  sipAi = signal<{ geminiSocketUrl: string; extensions: string[] }>({ geminiSocketUrl: '', extensions: [] });
   search = signal('');
   page = signal(1);
   pageSize = signal(10);
@@ -258,22 +243,14 @@ export class ExtensionsPage {
 
   options = computed(() => this.opts.options());
 
-  aiServiceNameById = computed(() => {
-    const o = this.options();
-    const map = new Map<string, string>();
-    for (const s of (o?.aiServices ?? [])) {
-      if (!s?.id) continue;
-      map.set(String(s.id), String(s.name ?? s.id));
-    }
-    return map;
-  });
+  sipAiEnabled(id: string) {
+    return this.sipAi().extensions.includes(id);
+  }
 
-  aiTooltip(e: Extension) {
-    if (!e.aiEnabled) return 'AI disabled';
-    const id = String(e.aiServiceId ?? '').trim();
-    if (!id) return 'AI enabled (default service)';
-    const name = this.aiServiceNameById().get(id);
-    return name ? `AI enabled (${name})` : `AI enabled (service: ${id})`;
+  sipAiTooltip(id: string) {
+    if (!this.sipAiEnabled(id)) return 'SIP AI disabled';
+    const url = String(this.sipAi().geminiSocketUrl ?? '').trim();
+    return url ? `SIP AI enabled (${url})` : 'SIP AI enabled (no Gemini URL set)';
   }
 
   soundItems = computed((): SearchSelectItem[] => {
@@ -310,20 +287,6 @@ export class ExtensionsPage {
     return items;
   });
 
-  aiServiceItems = computed((): SearchSelectItem[] => {
-    const o = this.options();
-    const list = o?.aiServices ?? [];
-    return [
-      { value: '', label: '(default)', group: 'AI services' },
-      ...list.map((s: any) => ({
-        value: s.id,
-        label: `${s.name} — ${s.socketUrl}`,
-        group: 'AI services',
-        keywords: s.socketUrl,
-      })),
-    ];
-  });
-
   form = new FormGroup({
     id: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(/^\d+$/)] }),
     password: new FormControl('$${default_password}', { nonNullable: true, validators: [Validators.required] }),
@@ -334,8 +297,6 @@ export class ExtensionsPage {
     outgoingSound: new FormControl('', { nonNullable: true }),
     outboundTrunk: new FormControl('', { nonNullable: true }),
     forwardMobile: new FormControl('', { nonNullable: true }),
-    aiEnabled: new FormControl(false, { nonNullable: true }),
-    aiServiceId: new FormControl('', { nonNullable: true }),
   });
 
   constructor(
@@ -346,23 +307,22 @@ export class ExtensionsPage {
     this.opts.refresh();
     this.load();
     this.loadRegs();
+    this.loadSipAi();
   }
 
   filtered() {
     const s = this.search().trim().toLowerCase();
     if (!s) return this.items();
     return this.items().filter((e) => {
-      const aiId = String(e.aiServiceId ?? '').toLowerCase();
-      const aiName = this.aiServiceNameById().get(String(e.aiServiceId ?? ''))?.toLowerCase() ?? '';
-      const aiFlag = e.aiEnabled ? 'ai on enabled' : 'ai off disabled';
+      const aiFlag = this.sipAiEnabled(e.id) ? 'sip ai on enabled' : 'sip ai off disabled';
+      const aiUrl = String(this.sipAi().geminiSocketUrl ?? '').toLowerCase();
       return (
         e.id.includes(s) ||
         e.callerIdName.toLowerCase().includes(s) ||
         e.callerIdNumber.toLowerCase().includes(s) ||
         (e.callgroup ?? '').toLowerCase().includes(s) ||
         aiFlag.includes(s) ||
-        aiId.includes(s) ||
-        aiName.includes(s)
+        aiUrl.includes(s)
       );
     });
   }
@@ -382,6 +342,13 @@ export class ExtensionsPage {
     this.http.get<Extension[]>(`${API_BASE_URL}/pbx/extensions`).subscribe({
       next: (res) => this.items.set(res),
       error: (err) => this.error.set(err?.error?.message ?? 'Failed to load extensions'),
+    });
+  }
+
+  loadSipAi() {
+    this.http.get<{ geminiSocketUrl: string; extensions: string[] }>(`${API_BASE_URL}/pbx/sip-ai`).subscribe({
+      next: (res) => this.sipAi.set(res ?? { geminiSocketUrl: '', extensions: [] }),
+      error: () => this.sipAi.set({ geminiSocketUrl: '', extensions: [] }),
     });
   }
 
@@ -409,8 +376,6 @@ export class ExtensionsPage {
       outgoingSound: '',
       outboundTrunk: '',
       forwardMobile: '',
-      aiEnabled: false,
-      aiServiceId: '',
     });
     this.modalOpen.set(true);
   }
@@ -428,8 +393,6 @@ export class ExtensionsPage {
       outgoingSound: e.outgoingSound ?? '',
       outboundTrunk: e.outboundTrunk ?? '',
       forwardMobile: e.forwardMobile ?? '',
-      aiEnabled: Boolean(e.aiEnabled),
-      aiServiceId: e.aiServiceId ?? '',
     });
     this.modalOpen.set(true);
   }
@@ -452,8 +415,6 @@ export class ExtensionsPage {
       outgoingSound: v.outgoingSound || undefined,
       outboundTrunk: v.outboundTrunk || undefined,
       forwardMobile: v.forwardMobile || undefined,
-      aiEnabled: v.aiEnabled || undefined,
-      aiServiceId: v.aiServiceId || undefined,
     };
     this.http.post(`${API_BASE_URL}/pbx/extensions`, body).subscribe({
       next: () => {

@@ -9,7 +9,7 @@ import { QueuesPage } from './pages/queues.page';
 import { IvrsPage } from './pages/ivrs.page';
 import { TimeConditionsPage } from './pages/time-conditions.page';
 import { SoundsPage } from './pages/sounds.page';
-import { AiPage } from './pages/ai.page';
+import { SipAiPage } from './pages/sip-ai.page';
 import { ConsolePage } from './pages/console.page';
 import { NatPage } from './pages/nat.page';
 import { AdvancedSettingsPage } from './pages/advanced-settings.page';
@@ -30,7 +30,7 @@ export const routes: Routes = [
       { path: 'pbx/time-conditions', component: TimeConditionsPage },
       { path: 'pbx/trunks', component: TrunksPage },
       { path: 'console', component: ConsolePage },
-      { path: 'ai', component: AiPage },
+      { path: 'ai', component: SipAiPage },
       { path: 'nat', component: NatPage },
       { path: 'settings/advanced', component: AdvancedSettingsPage },
       { path: 'settings/sip', component: SipSettingsPage },
