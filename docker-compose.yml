@@ -14,6 +14,27 @@ services:
     environment:
       - TZ=Asia/Tbilisi
 
+  sip-rtp-go:
+    image: sip-rtp-go:latest
+    container_name: sip-rtp-go
+    restart: unless-stopped
+    # Must be host networking because freeswitch is host networking (127.0.0.1 SIP/RTP)
+    network_mode: "host"
+    environment:
+      # In WSL host-network mode, FreeSWITCH binds to the WSL IP (not always 127.0.0.1).
+      # Use "auto" so sip-rtp-go discovers the correct local IP and talks to FreeSWITCH reliably.
+      - SIP_SERVER_ADDR=auto:5060
+      - SIP_DOMAIN=auto
+      - SIP_USER=1098
+      - SIP_PASS=1234
+      - SIP_LISTEN_ADDR=0.0.0.0:5090
+      - SIP_REGISTER_LOCAL_ADDR=0.0.0.0:5091
+      - SIP_CONTACT_HOST=auto
+      - RTP_LISTEN_ADDR=0.0.0.0:40000
+      - SDP_IP=auto
+      - REGISTER_EXPIRES=300
+      - LOG_LEVEL=info
+
   fs-admin-backend:
     image: node:20-bookworm-slim
     container_name: fs-admin-backend

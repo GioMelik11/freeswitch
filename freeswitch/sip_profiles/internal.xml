@@ -26,7 +26,8 @@
     <param name="outbound-codec-negotiation" value="generous"/>
     <param name="rtp-timer-name" value="soft"/>
     <param name="rtp-ip" value="$${local_ip_v4}"/>
-    <param name="sip-ip" value="$${local_ip_v4}"/>
+    <!-- Bind SIP on all interfaces so local services (like sip-rtp-go) can reach it in host-network mode -->
+    <param name="sip-ip" value="0.0.0.0"/>
     <param name="hold-music" value="$${hold_music}"/>
     <!-- Media handling for incoming calls - Direct RTP flow -->
     <param name="apply-nat-acl" value="nat.auto"/>

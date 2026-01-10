@@ -16,7 +16,8 @@
 
   <!-- RTP Port Range -->
   <X-PRE-PROCESS cmd="set" data="rtp_start_port=10000"/>
-  <X-PRE-PROCESS cmd="set" data="rtp_end_port=10005"/>
+  <!-- NOTE: 10000-10005 is too small and will quickly cause "No audio RTP ports available!". -->
+  <X-PRE-PROCESS cmd="set" data="rtp_end_port=20000"/>
 
   <!-- RTP/SIP external IP settings
        IMPORTANT: external_* MUST be a publicly reachable IP (or auto-nat if it resolves correctly).

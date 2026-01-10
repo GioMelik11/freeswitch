@@ -1,0 +1,7 @@
+module sip-rtp-go
+
+go 1.22
+
+require github.com/pion/rtp v1.8.12
+
+require github.com/pion/randutil v0.1.0 // indirect

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  sip-rtp-go:
+    build:
+      # Match freeswitch-build approach: build from repo root, Dockerfile lives in this folder.
+      context: ..
+      dockerfile: sip-rtp-go-build/Dockerfile
+    image: sip-rtp-go:latest
+    container_name: sip-rtp-go
+    restart: unless-stopped
+    network_mode: "host"
+    environment:
+      - SIP_SERVER_ADDR=auto:5060
+      - SIP_DOMAIN=auto
+      - SIP_USER=1098
+      - SIP_PASS=1234
+      - SIP_LISTEN_ADDR=0.0.0.0:5090
+      - SIP_REGISTER_LOCAL_ADDR=0.0.0.0:5091
+      - SIP_CONTACT_HOST=auto
+      - RTP_LISTEN_ADDR=0.0.0.0:40000
+      - SDP_IP=auto
+      - REGISTER_EXPIRES=300
+      - LOG_LEVEL=info
+
+

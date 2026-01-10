@@ -1,0 +1,18 @@
+<include>
+  <!-- Go SIP+RTP echo bot (REGISTERs as 1098, answers calls, echoes RTP back) -->
+  <user id="1098">
+    <params>
+      <!-- Uses vars.xml: default_password=1234 -->
+      <param name="password" value="$${default_password}"/>
+    </params>
+    <variables>
+      <variable name="toll_allow" value="domestic,international,local"/>
+      <variable name="accountcode" value="1098"/>
+      <variable name="user_context" value="default"/>
+      <variable name="effective_caller_id_name" value="Echo Bot 1098"/>
+      <variable name="effective_caller_id_number" value="1098"/>
+    </variables>
+  </user>
+</include>
+
+
