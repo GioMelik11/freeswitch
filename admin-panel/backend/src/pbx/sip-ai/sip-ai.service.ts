@@ -35,7 +35,8 @@ export type SipAiConfigV2 = {
 
 export type SipAiConfigPatch = {
   defaults?: Partial<SipAiDefaults>;
-  agents?: SipAiAgent[];
+  // Accept partial agent objects from DTO; normalize() will validate/clean them.
+  agents?: any[];
 };
 
 @Injectable()

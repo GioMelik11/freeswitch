@@ -142,9 +142,12 @@ type SipAiConfig = { defaults: SipAiDefaults; agents: SipAiAgent[] };
             @for (a of config().agents; track a.id) {
               <div class="grid grid-cols-12 gap-2 px-3 py-2 border-t border-slate-800 items-center">
                 <div class="col-span-1 text-center">
-                  <input type="checkbox" class="accent-indigo-600"
-                         [checked]="a.enabled !== false"
-                         (change)="saveAll({ ...config(), agents: config().agents.map(x => x.id === a.id ? ({...x, enabled: $any($event.target).checked}) : x) })" />
+                  <input
+                    type="checkbox"
+                    class="accent-indigo-600"
+                    [checked]="a.enabled !== false"
+                    (change)="toggleAgentEnabled(a, $any($event.target).checked)"
+                  />
                 </div>
                 <div class="col-span-3 text-sm text-slate-200">
                   {{ a.source === 'pbx' ? 'PBX' : 'External' }}
@@ -454,6 +457,11 @@ export class SipAiPage {
     const list = this.config().agents.filter((x) => x.id !== a.id);
     this.saveAll({ ...this.config(), agents: list });
     }
+
+  toggleAgentEnabled(a: SipAiAgent, on: boolean) {
+    const list = this.config().agents.map((x) => (x.id === a.id ? { ...x, enabled: on } : x));
+    this.saveAll({ ...this.config(), agents: list });
+  }
 }
 
 
