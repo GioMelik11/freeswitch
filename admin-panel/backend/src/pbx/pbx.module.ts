@@ -27,7 +27,6 @@ import { NatService } from './nat/nat.service';
 import { SettingsController } from './settings/settings.controller';
 import { SettingsService } from './settings/settings.service';
 import { PbxBootstrapService } from './pbx-bootstrap.service';
-import { AudioStreamWsEchoService } from './audio-stream-ws-echo/audio-stream-ws-echo.service';
 
 @Module({
   imports: [FilesModule, PbxMetaModule, DialplanModule],
@@ -59,7 +58,6 @@ import { AudioStreamWsEchoService } from './audio-stream-ws-echo/audio-stream-ws
     NatService,
     SettingsService,
     PbxBootstrapService,
-    AudioStreamWsEchoService,
   ],
 })
 export class PbxModule { }

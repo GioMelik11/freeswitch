@@ -1,29 +1,4 @@
 <include>
-  <!-- WS voice-echo test via mod_audio_stream
-       Dial 9998:
-       - FreeSWITCH answers
-       - starts uuid_audio_stream to ws://127.0.0.1:9096/echo/${uuid}
-       - WS server writes WAV chunks into sounds dir; Lua plays them back and deletes them
-  -->
-  <extension name='ws_voice_echo_test_9998'>
-    <condition field='destination_number' expression='^9998$'>
-      <action application='set' data='STREAM_MESSAGE_DEFLATE=true'/>
-      <action application='set' data='STREAM_SUPPRESS_LOG=false'/>
-      <!-- 100ms chunks match the WS chunker; adjust if needed -->
-      <action application='set' data='STREAM_BUFFER_SIZE=100'/>
-      <!-- Ensure the WS stream is stopped immediately when the caller hangs up -->
-      <action application='set' data='api_hangup_hook=uuid_audio_stream ${uuid} stop'/>
-      <action application='answer'/>
-      <action application='playback' data='tone_stream://%(250,0,1000,1000)'/>
-      <!-- mod_audio_stream exposes uuid_audio_stream as an API (not a dialplan app in this build).
-           Use the Lua helper which invokes the API internally. -->
-      <action application='set' data='wsq_dir=/usr/share/freeswitch/sounds/tmp/ws-echo-q/${uuid}'/>
-      <action application='lua' data='/usr/local/freeswitch/etc/freeswitch/scripts/start_audio_stream.lua ws://127.0.0.1:9096/echo/${uuid} mono 8000'/>
-      <action application='lua' data='/usr/local/freeswitch/etc/freeswitch/scripts/play_ws_wav_queue.lua ${wsq_dir} 50'/>
-      <action application='hangup'/>
-    </condition>
-  </extension>
-
   <!-- Local WAV test (no sockets/WS): dial 9996 and you should hear ivr/incoming.wav played by FreeSWITCH -->
   <extension name="local_wav_test_9996">
     <condition field="destination_number" expression="^9996$">
