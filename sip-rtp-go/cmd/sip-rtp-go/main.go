@@ -1431,25 +1431,43 @@ func wavToPCM16Mono(wav []byte) ([]int16, int, error) {
 }
 
 func downsampleTo8k(in []int16, inRate int) []int16 {
-	// Minimal resampler for common rates from Gemini/bridge.
-	// - 24k -> 8k : take every 3rd sample
-	// - 16k -> 8k : take every 2nd sample
-	// - 8k -> 8k : passthrough
+	// Resampler for common rates from Gemini/bridge.
+	// The previous "drop samples" decimation (24k->8k take every 3rd) causes harsh aliasing
+	// that users often describe as "glitchy/robotic". Use linear interpolation instead.
 	switch inRate {
 	case 8000:
 		out := make([]int16, len(in))
 		copy(out, in)
 		return out
-	case 16000:
-		out := make([]int16, 0, len(in)/2)
-		for i := 0; i+1 < len(in); i += 2 {
-			out = append(out, in[i])
+	case 16000, 24000:
+		// Linear interpolation to 8k.
+		// outLen ≈ inLen * 8000 / inRate
+		if len(in) < 2 {
+			return nil
 		}
-		return out
-	case 24000:
-		out := make([]int16, 0, len(in)/3)
-		for i := 0; i+2 < len(in); i += 3 {
-			out = append(out, in[i])
+		outLen := (len(in) * 8000) / inRate
+		if outLen < 1 {
+			outLen = 1
+		}
+		out := make([]int16, outLen)
+		step := float64(inRate) / 8000.0
+		for i := 0; i < outLen; i++ {
+			pos := float64(i) * step
+			idx := int(pos)
+			if idx >= len(in)-1 {
+				out[i] = in[len(in)-1]
+				continue
+			}
+			frac := pos - float64(idx)
+			a := float64(in[idx])
+			b := float64(in[idx+1])
+			v := a + (b-a)*frac
+			if v > 32767 {
+				v = 32767
+			} else if v < -32768 {
+				v = -32768
+			}
+			out[i] = int16(v)
 		}
 		return out
 	default:
