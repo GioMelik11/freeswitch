@@ -61,24 +61,30 @@ type Trunk = {
     </div>
 
     <div class="rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
-      <div class="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-xs text-slate-400">
-        <div class="col-span-4">Name</div>
-        <div class="col-span-3">Proxy/Realm</div>
-        <div class="col-span-2">Username</div>
-        <div class="col-span-1 text-center">Reg</div>
-        <div class="col-span-2 text-right">Actions</div>
+      <div
+        class="grid gap-2 px-4 py-3 border-b border-slate-800 text-xs text-slate-400"
+        style="grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);"
+      >
+        <div>Name</div>
+        <div>Proxy/Realm</div>
+        <div>Username</div>
+        <div class="text-center">Reg</div>
+        <div class="text-right">Actions</div>
       </div>
       @for (t of paged(); track t.name) {
-        <div class="grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-900/60 items-center">
-          <div class="col-span-4 font-mono text-sm flex items-center gap-2">
+        <div
+          class="grid gap-2 px-4 py-3 border-b border-slate-900/60 items-center"
+          style="grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);"
+        >
+          <div class="font-mono text-sm flex items-center gap-2 min-w-0">
             <span>{{ t.name }}</span>
             @if (t.isDefault) {
               <span class="rounded-md border border-amber-800/60 bg-amber-950/20 px-2 py-0.5 text-[11px] text-amber-200">DEFAULT</span>
             }
           </div>
-          <div class="col-span-3 font-mono text-xs text-slate-300">{{ t.proxy ?? t.realm ?? '-' }}</div>
-          <div class="col-span-2 font-mono text-xs text-slate-300 truncate">{{ t.username ?? '-' }}</div>
-          <div class="col-span-1 text-center">
+          <div class="font-mono text-xs text-slate-300 truncate">{{ t.proxy ?? t.realm ?? '-' }}</div>
+          <div class="font-mono text-xs text-slate-300 truncate">{{ t.username ?? '-' }}</div>
+          <div class="text-center min-w-0">
             <span
               class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
               [class.border-emerald-800]="statusFor(t.name) === 'REGED'"
@@ -100,10 +106,10 @@ type Trunk = {
                     [class.bg-amber-400]="statusFor(t.name) === 'TRYING'"
                     [class.bg-red-400]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
                     [class.bg-slate-500]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"></span>
-              {{ statusFor(t.name) }}
+              <span class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap">{{ statusFor(t.name) }}</span>
             </span>
           </div>
-          <div class="col-span-2 flex justify-end gap-2">
+          <div class="flex justify-end gap-2">
             @if (!t.isDefault) {
               <button
                 class="rounded-lg border border-slate-800 bg-slate-950/20 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900/60"

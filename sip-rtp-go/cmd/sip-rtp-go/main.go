@@ -2,21 +2,23 @@ package main
 
 import (
 	"crypto/md5"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"net"
+	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"sort"
 
+	"github.com/gorilla/websocket"
 	"github.com/pion/rtp"
 )
 
@@ -92,15 +94,15 @@ type sipAiDefaultsV2 struct {
 }
 
 type sipAiAgentV2 struct {
-	ID             string `json:"id"`
-	Source         string `json:"source"` // "pbx" | "external"
-	Extension      string `json:"extension"`
-	SipUser        string `json:"sipUser"`
-	SipPass        string `json:"sipPass"`
-	SipServerAddr  string `json:"sipServerAddr"`
-	SipDomain      string `json:"sipDomain"`
+	ID              string `json:"id"`
+	Source          string `json:"source"` // "pbx" | "external"
+	Extension       string `json:"extension"`
+	SipUser         string `json:"sipUser"`
+	SipPass         string `json:"sipPass"`
+	SipServerAddr   string `json:"sipServerAddr"`
+	SipDomain       string `json:"sipDomain"`
 	GeminiSocketURL string `json:"geminiSocketUrl"`
-	Enabled        *bool  `json:"enabled"`
+	Enabled         *bool  `json:"enabled"`
 }
 
 type sipAiConfigV2 struct {
@@ -173,7 +175,7 @@ type sipMsg struct {
 	reason string
 
 	// header names are normalized to lower-case
-	hdr map[string][]string
+	hdr  map[string][]string
 	body []byte
 }
 
@@ -375,10 +377,10 @@ type runtimeState struct {
 }
 
 type agentRuntime struct {
-	user           string
-	enabled        bool
+	user            string
+	enabled         bool
 	geminiSocketURL string
-	source         string
+	source          string
 	// registration target
 	sipServerAddr   string
 	sipDomain       string
@@ -402,7 +404,7 @@ type callSession struct {
 	extID  string
 	rtp    net.PacketConn
 	stopCh chan struct{}
-	echo  bool
+	echo   bool
 }
 
 func main() {
@@ -420,9 +422,9 @@ func main() {
 	defer sipSrvConn.Close()
 
 	st := &runtimeState{
-		enabledExt: map[string]bool{},
-		workers:    map[string]*regWorker{},
-		calls:      map[string]*callSession{},
+		enabledExt:  map[string]bool{},
+		workers:     map[string]*regWorker{},
+		calls:       map[string]*callSession{},
 		agentByUser: map[string]agentRuntime{},
 	}
 
@@ -897,8 +899,9 @@ func handleInvite(logger *log.Logger, conn net.PacketConn, addr net.Addr, req si
 		go runRTPEchoCall(logger, cs)
 		logger.Printf("call answered (ext=%s mode=echo rtp=%s:%d)", extID, sdpIP, rtpPort)
 	} else {
-		go runRTPDrainCall(logger, cs)
-		logger.Printf("call answered (ext=%s mode=ai-pending rtp=%s:%d)", extID, sdpIP, rtpPort)
+		wsURL := strings.TrimSpace(agent.geminiSocketURL)
+		go runRTPWsStreamCall(logger, cs, wsURL)
+		logger.Printf("call answered (ext=%s mode=ai-ws rtp=%s:%d ws=%s)", extID, sdpIP, rtpPort, wsURL)
 	}
 }
 
@@ -1058,6 +1061,172 @@ func runRTPEchoCall(logger *log.Logger, cs *callSession) {
 	}
 }
 
+func runRTPWsStreamCall(logger *log.Logger, cs *callSession, wsURL string) {
+	// AI mode: stream caller audio to a mod_audio_stream-compatible WebSocket server (e.g. whizio on :9094).
+	// We currently only send upstream audio. Playback support can be added later (streamAudio -> RTP).
+	wsURL = strings.TrimSpace(wsURL)
+	if wsURL == "" {
+		runRTPDrainCall(logger, cs)
+		return
+	}
+	if !strings.HasPrefix(strings.ToLower(wsURL), "ws://") && !strings.HasPrefix(strings.ToLower(wsURL), "wss://") {
+		logger.Printf("ws stream: invalid url %q (expected ws:// or wss://); draining", wsURL)
+		runRTPDrainCall(logger, cs)
+		return
+	}
+	u, err := url.Parse(wsURL)
+	if err != nil {
+		logger.Printf("ws stream: bad url %q: %v; draining", wsURL, err)
+		runRTPDrainCall(logger, cs)
+		return
+	}
+
+	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		logger.Printf("ws stream: dial failed url=%q: %v; draining", wsURL, err)
+		runRTPDrainCall(logger, cs)
+		return
+	}
+	defer ws.Close()
+	logger.Printf("ws stream: connected url=%q (ext=%s call-id=%s)", wsURL, cs.extID, cs.callID)
+
+	// optional metadata (whizio logs it if JSON)
+	meta := map[string]any{
+		"source":     "sip-rtp-go",
+		"callId":     cs.callID,
+		"extension":  cs.extID,
+		"mimeType":   "audio/pcm;rate=16000",
+		"sampleRate": 16000,
+	}
+	if b, err := json.Marshal(meta); err == nil {
+		_ = ws.WriteMessage(websocket.TextMessage, b)
+	}
+
+	// consume server messages (for now just log the first few)
+	go func() {
+		n := 0
+		for {
+			select {
+			case <-cs.stopCh:
+				return
+			default:
+			}
+			mt, msg, err := ws.ReadMessage()
+			if err != nil {
+				return
+			}
+			if mt == websocket.TextMessage {
+				n++
+				if n <= 3 {
+					logger.Printf("ws stream: server msg: %s", strings.TrimSpace(string(msg)))
+				}
+			}
+		}
+	}()
+
+	buf := make([]byte, 2048)
+	var p rtp.Packet
+	var rx uint64
+
+	for {
+		_ = cs.rtp.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+		n, _, err := cs.rtp.ReadFrom(buf)
+		select {
+		case <-cs.stopCh:
+			return
+		default:
+		}
+		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				continue
+			}
+			return
+		}
+		if err := p.Unmarshal(buf[:n]); err != nil {
+			continue
+		}
+		pt := p.PayloadType
+		payload := p.Payload
+		if len(payload) == 0 {
+			continue
+		}
+
+		// Decode RTP payload to PCM16 @ 8k.
+		var pcm8k []int16
+		switch pt {
+		case 0: // PCMU
+			pcm8k = make([]int16, len(payload))
+			for i, b := range payload {
+				pcm8k[i] = muLawToLinear(b)
+			}
+		case 8: // PCMA
+			pcm8k = make([]int16, len(payload))
+			for i, b := range payload {
+				pcm8k[i] = aLawToLinear(b)
+			}
+		default:
+			// Unsupported codec; ignore.
+			continue
+		}
+
+		// Upsample 8k -> 16k by simple duplication (good enough for voice).
+		pcm16k := make([]int16, len(pcm8k)*2)
+		for i, s := range pcm8k {
+			j := i * 2
+			pcm16k[j] = s
+			pcm16k[j+1] = s
+		}
+
+		// Convert to little-endian bytes.
+		out := make([]byte, len(pcm16k)*2)
+		for i, s := range pcm16k {
+			off := i * 2
+			out[off] = byte(s)
+			out[off+1] = byte(uint16(s) >> 8)
+		}
+
+		if err := ws.WriteMessage(websocket.BinaryMessage, out); err != nil {
+			return
+		}
+		rx++
+		if rx == 1 {
+			logger.Printf("ws stream: first pcm frame bytes=%d pt=%d", len(out), pt)
+		}
+	}
+}
+
+func muLawToLinear(u byte) int16 {
+	// G.711 μ-law to linear PCM16
+	u = ^u
+	sign := u & 0x80
+	exponent := (u >> 4) & 0x07
+	mantissa := u & 0x0F
+	sample := ((int(mantissa) << 3) + 0x84) << exponent
+	sample -= 0x84
+	if sign != 0 {
+		return int16(-sample)
+	}
+	return int16(sample)
+}
+
+func aLawToLinear(a byte) int16 {
+	// G.711 A-law to linear PCM16
+	a ^= 0x55
+	sign := a & 0x80
+	exponent := (a >> 4) & 0x07
+	mantissa := a & 0x0F
+	var sample int
+	if exponent == 0 {
+		sample = (int(mantissa) << 4) + 8
+	} else {
+		sample = ((int(mantissa) << 4) + 0x108) << (exponent - 1)
+	}
+	if sign == 0 {
+		sample = -sample
+	}
+	return int16(sample)
+}
+
 func runRTPDrainCall(logger *log.Logger, cs *callSession) {
 	// AI mode placeholder: we currently just read RTP and do not echo it back.
 	buf := make([]byte, 2048)
@@ -1111,5 +1280,3 @@ func runRTPDrainCall(logger *log.Logger, cs *callSession) {
 		mu.Unlock()
 	}
 }
-
-

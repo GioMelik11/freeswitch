@@ -13,7 +13,7 @@
       "id": "pbx-1001",
       "source": "pbx",
       "extension": "1001",
-      "geminiSocketUrl": "",
+      "geminiSocketUrl": "ws://127.0.0.1:9094",
       "enabled": true
     },
     {
