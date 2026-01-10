@@ -15,6 +15,13 @@
       "extension": "1001",
       "geminiSocketUrl": "",
       "enabled": true
+    },
+    {
+      "id": "pbx-1002",
+      "source": "pbx",
+      "extension": "1002",
+      "geminiSocketUrl": "",
+      "enabled": true
     }
   ]
 }
