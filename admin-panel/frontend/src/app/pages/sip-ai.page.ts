@@ -104,6 +104,7 @@ type SipAiConfig = { defaults: SipAiDefaults; agents: SipAiAgent[] };
             <input type="number" min="0"
                    class="w-full rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 font-mono text-sm"
                    formControlName="registerExpires" />
+            <div class="text-[11px] text-slate-400 mt-1">0 = no limit (we still refresh registrations periodically)</div>
           </label>
           <label class="block sm:col-span-2">
             <div class="text-xs text-slate-300 mb-1">Default SIP password (PBX)</div>
@@ -290,7 +291,8 @@ export class SipAiPage {
       sdpIP: 'auto',
       sipListenAddr: '0.0.0.0:5090',
       sipPass: '1234',
-      registerExpires: 300,
+      // 0 = no limit
+      registerExpires: 0,
     },
     agents: [],
   });
@@ -302,7 +304,7 @@ export class SipAiPage {
     sdpIP: new FormControl('auto', { nonNullable: true, validators: [Validators.required] }),
     sipListenAddr: new FormControl('0.0.0.0:5090', { nonNullable: true, validators: [Validators.required] }),
     sipPass: new FormControl('1234', { nonNullable: true, validators: [Validators.required] }),
-    registerExpires: new FormControl(300, { nonNullable: true, validators: [Validators.required] }),
+    registerExpires: new FormControl(0, { nonNullable: true, validators: [Validators.required] }),
   });
 
     extensionItems = computed((): SearchSelectItem[] => {

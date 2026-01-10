@@ -50,22 +50,69 @@ export class StatusController {
 
   @Get('extensions')
   async extensions() {
-    // "sofia status profile internal reg" returns a table with user in column 1.
+    // "sofia status profile internal reg" output differs by version:
+    // - sometimes it's a single-line table
+    // - often it's a multi-line block per registration (Call-ID/User/Contact/Status/etc.)
     const res = await this.esl.api('sofia status profile internal reg');
     const lines = res.body.split(/\r?\n/);
     const out: Record<
       string,
       { contact?: string; expires?: string; raw: string }
     > = {};
+
+    // First try: parse block format
+    let curUser = '';
+    let curContact = '';
+    let curExpires = '';
+    let curRaw: string[] = [];
+    const flush = () => {
+      if (curUser) {
+        out[curUser] = {
+          raw: curRaw.join('\n'),
+          contact: curContact || undefined,
+          expires: curExpires || undefined,
+        };
+      }
+      curUser = '';
+      curContact = '';
+      curExpires = '';
+      curRaw = [];
+    };
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      if (trimmed.toLowerCase().startsWith('call-id')) continue;
-      if (trimmed.toLowerCase().includes('registrations')) continue;
-      const parts = trimmed.split(/\s+/);
-      const user = parts[0];
-      if (!/^\d+$/.test(user)) continue;
-      out[user] = { raw: trimmed };
+      const lower = trimmed.toLowerCase();
+      if (lower.includes('registrations')) continue;
+
+      // new block marker
+      if (lower.startsWith('call-id:')) flush();
+      curRaw.push(trimmed);
+
+      const mUser = trimmed.match(/^User:\s+(\d+)(?:@|\s|$)/i);
+      if (mUser) curUser = mUser[1];
+
+      const mContact = trimmed.match(/^Contact:\s+(.+)$/i);
+      if (mContact) curContact = mContact[1].trim();
+
+      const mExp = trimmed.match(/^Status:.*\bEXP\(([^)]+)\)/i);
+      if (mExp) curExpires = mExp[1].trim();
+    }
+    flush();
+
+    // Fallback: table format (user is first token)
+    if (Object.keys(out).length === 0) {
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const lower = trimmed.toLowerCase();
+        if (lower.startsWith('call-id')) continue;
+        if (lower.includes('registrations')) continue;
+        const parts = trimmed.split(/\s+/);
+        const user = parts[0];
+        if (!/^\d+$/.test(user)) continue;
+        out[user] = { raw: trimmed };
+      }
     }
     return out;
   }

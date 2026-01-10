@@ -697,7 +697,13 @@ func watchSipAiConfig(logger *log.Logger, c cfg, st *runtimeState) {
 					if err := doRegister(logger, regConn, t); err != nil {
 						logger.Printf("register[%s] error: %v", user, err)
 					}
-					sleep := time.Duration(max(10, t.registerExpires/2)) * time.Second
+					sleepSec := max(10, t.registerExpires/2)
+					// If using "no limit" Expires (we set it to a very large value),
+					// still refresh frequently so registrations recover quickly after FS restarts.
+					if t.registerExpires >= 31536000 {
+						sleepSec = 60
+					}
+					sleep := time.Duration(sleepSec) * time.Second
 					select {
 					case <-w.stopCh:
 						return

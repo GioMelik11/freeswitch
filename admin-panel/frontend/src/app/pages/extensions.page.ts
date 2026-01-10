@@ -82,12 +82,19 @@ type Extension = {
           </div>
           <div class="col-span-3 flex justify-end gap-2">
             <span
-              class="mr-2 self-center text-xs"
-              [class.text-emerald-300]="isRegistered(e.id)"
-              [class.text-slate-500]="!isRegistered(e.id)"
+              class="mr-2 self-center inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
+              [class.border-emerald-800]="isRegistered(e.id)"
+              [class.text-emerald-200]="isRegistered(e.id)"
+              [class.bg-emerald-950/20]="isRegistered(e.id)"
+              [class.border-slate-800]="!isRegistered(e.id)"
+              [class.text-slate-300]="!isRegistered(e.id)"
+              [class.bg-slate-950/20]="!isRegistered(e.id)"
               [title]="regs()[e.id]?.raw ?? ''"
             >
-              {{ isRegistered(e.id) ? 'REG' : 'OFF' }}
+              <span class="h-1.5 w-1.5 rounded-full"
+                    [class.bg-emerald-400]="isRegistered(e.id)"
+                    [class.bg-slate-500]="!isRegistered(e.id)"></span>
+              {{ isRegistered(e.id) ? 'REGISTERED' : 'OFFLINE' }}
             </span>
             <button class="rounded-lg border border-slate-800 px-2 py-1 text-xs hover:bg-slate-900" (click)="edit(e)">
               Edit

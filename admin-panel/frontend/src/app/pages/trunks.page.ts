@@ -80,25 +80,39 @@ type Trunk = {
           <div class="col-span-2 font-mono text-xs text-slate-300 truncate">{{ t.username ?? '-' }}</div>
           <div class="col-span-1 text-center">
             <span
-              class="text-xs"
-              [class.text-emerald-300]="statusFor(t.name) === 'REGED'"
-              [class.text-amber-300]="statusFor(t.name) === 'TRYING'"
-              [class.text-red-300]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
-              [class.text-slate-500]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"
+              class="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px]"
+              [class.border-emerald-800]="statusFor(t.name) === 'REGED'"
+              [class.text-emerald-200]="statusFor(t.name) === 'REGED'"
+              [class.bg-emerald-950/20]="statusFor(t.name) === 'REGED'"
+              [class.border-amber-800]="statusFor(t.name) === 'TRYING'"
+              [class.text-amber-200]="statusFor(t.name) === 'TRYING'"
+              [class.bg-amber-950/20]="statusFor(t.name) === 'TRYING'"
+              [class.border-red-900/60]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
+              [class.text-red-200]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
+              [class.bg-red-950/20]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
+              [class.border-slate-800]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"
+              [class.text-slate-300]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"
+              [class.bg-slate-950/20]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"
               [title]="statuses()[t.name]?.raw ?? ''"
             >
+              <span class="h-1.5 w-1.5 rounded-full"
+                    [class.bg-emerald-400]="statusFor(t.name) === 'REGED'"
+                    [class.bg-amber-400]="statusFor(t.name) === 'TRYING'"
+                    [class.bg-red-400]="statusFor(t.name) === 'FAIL_WAIT' || statusFor(t.name) === 'DOWN'"
+                    [class.bg-slate-500]="statusFor(t.name) === 'NOREG' || statusFor(t.name) === 'UNREGED' || statusFor(t.name) === 'UNKNOWN'"></span>
               {{ statusFor(t.name) }}
             </span>
           </div>
           <div class="col-span-2 flex justify-end gap-2">
-            <button
-              class="rounded-lg border border-amber-900/60 px-2 py-1 text-xs text-amber-200 hover:bg-amber-950/30 disabled:opacity-50"
-              [disabled]="t.isDefault"
-              (click)="makeDefault(t)"
-              title="Use this trunk when an extension does not explicitly select a trunk"
-            >
-              Make default
-            </button>
+            @if (!t.isDefault) {
+              <button
+                class="rounded-lg border border-slate-800 bg-slate-950/20 px-2 py-1 text-xs text-slate-200 hover:bg-slate-900/60"
+                (click)="makeDefault(t)"
+                title="Make default trunk"
+              >
+                Set default
+              </button>
+            }
             <button class="rounded-lg border border-slate-800 px-2 py-1 text-xs hover:bg-slate-900" (click)="edit(t)">
               Edit
             </button>

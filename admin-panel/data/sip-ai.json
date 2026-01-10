@@ -6,7 +6,7 @@
     "sdpIP": "auto",
     "sipListenAddr": "0.0.0.0:5090",
     "sipPass": "1234",
-    "registerExpires": 300
+    "registerExpires": 0
   },
   "agents": [
     {

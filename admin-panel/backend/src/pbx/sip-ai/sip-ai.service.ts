@@ -60,7 +60,8 @@ export class SipAiService {
         sdpIP: 'auto',
         sipListenAddr: '0.0.0.0:5090',
         sipPass: '1234',
-        registerExpires: 300,
+        // 0 = "no limit" (sip-rtp-go will use a very large Expires but still refresh periodically)
+        registerExpires: 0,
       },
       agents: [],
     };
